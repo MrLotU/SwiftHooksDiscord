@@ -10,34 +10,35 @@ extension HookID {
 public final class DiscordHook: Hook {
     public typealias Options = DiscordHookOptions
     
+    public static let id: HookID = .discord
+    public let translator: EventTranslator.Type = DiscordEventTranslator.self
+
+    var token: String
+    let sharder = Sharder()
+    
+    public internal(set) var discordListeners: [DiscordEvent: [EventClosure]]
+    
+    public weak var hooks: SwiftHooks?
+    
     public init(_ options: DiscordHookOptions, hooks: SwiftHooks?) {
         self.token = options.token
         self.hooks = hooks
         self.discordListeners = [:]
     }
+    
     public func boot(on elg: EventLoopGroup) throws {
         SwiftHooks.logger.info("Booting \(self.self)")
-        let event = DiscordEvent._guildCreate
-        let mEvent = DiscordEvent._messageCreate
-
-        self.dispatchEvent(event, with: Data())
-        self.dispatchEvent(mEvent, with: Data())
         
-        elg.next().scheduleTask(in: .seconds(5)) {
-            self.dispatchEvent(mEvent, with: Data())
+        let amountOfShards: UInt8 = 1
+        self.sharder.shardCount = amountOfShards
+        for i in 0..<amountOfShards {
+            self.sharder.spawn(i, on: "wss://gateway.discord.gg", withToken: token, on: elg, handledBy: self)
         }
     }
-    public func shutdown() { SwiftHooks.logger.info("Shutting down \(self.self)") }
-    public static let id: HookID = .discord
-    public var translator: EventTranslator.Type {
-        return DiscordEventTranslator.self
+    
+    public func shutdown() {
+        self.sharder.disconnect()
     }
-
-    var token: String
-    
-    public internal(set) var discordListeners: [DiscordEvent: [EventClosure]]
-    
-    public weak var hooks: SwiftHooks?
     
     public func listen<T, I>(for event: T, handler: @escaping EventHandler<I>) where T : _Event, I == T.ContentType {
         guard let event = event as? _DiscordEvent<DiscordEvent, I> else { return }
@@ -68,7 +69,7 @@ public final class DiscordHook: Hook {
     }
 }
 
-class DiscordEventTranslator: EventTranslator {
+enum DiscordEventTranslator: EventTranslator {
     static func translate<E>(_ event: E) -> GlobalEvent? where E : EventType {
         guard let e = event as? DiscordEvent else { return nil }
         switch e {
@@ -91,13 +92,6 @@ public struct DiscordHookOptions: HookOptions {
     
     public init(token: String) {
         self.token = token
-    }
-}
-
-public struct _DiscordEvent<E: EventType, ContentType: PayloadType>: _Event {
-    public let event: E
-    public init(_ e: E, _ t: ContentType.Type) {
-        self.event = e
     }
 }
 
@@ -143,12 +137,4 @@ public struct DiscordMessage: Messageable {
     public func reply(_ content: String) { }
     public func edit(_ content: String) { }
     public func delete() { }
-}
-
-public enum DiscordEvent: String, EventType {
-    case _guildCreate = "GUILD_CREATE"
-    case _messageCreate = "MESSAGE_CREATE"
-
-    public static let guildCreate = _DiscordEvent(DiscordEvent._guildCreate, Guild.self)
-    public static let messageCreate = _DiscordEvent(DiscordEvent._messageCreate, DiscordMessage.self)
 }
