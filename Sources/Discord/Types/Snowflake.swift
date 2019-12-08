@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Jari (LotU) on 01/12/2019.
-//
-
 import Foundation
 
 public struct Snowflake {

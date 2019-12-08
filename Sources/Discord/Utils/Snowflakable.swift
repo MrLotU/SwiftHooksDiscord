@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Jari (LotU) on 01/12/2019.
-//
-
 /// Protocol that allows the conforming type to transform into a Snowflake
 public protocol Snowflakable {
     /// Snowflake value

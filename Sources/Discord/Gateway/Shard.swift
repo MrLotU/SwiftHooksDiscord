@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Jari (LotU) on 01/12/2019.
-//
-
 import Foundation
 import NIO
 import WebSocketKit
@@ -63,7 +56,6 @@ final class Shard {
     }
     
     func handle(_ data: Data) {
-        print("Got some data")
         buffer.append(contentsOf: data)
         
         guard isBufferComplete else {
@@ -117,11 +109,10 @@ final class Shard {
     }
         
     func handle(_ text: String) {
-        print(text)
         guard let data = text.data(using: .utf8) else { return }
-        
         do {
             let payload = try SwiftHooks.decoder.decode(GatewaySinData.self, from: data)
+            print("GOT SOME! \(payload.op), \(payload.t?.rawValue ?? "")")
             handle(payload, data)
         } catch {
             SwiftHooks.logger.error("Error handeling payload. \(error.localizedDescription). \(text)")
@@ -139,7 +130,11 @@ final class Shard {
         #elseif os(Linux)
         let os = "Linux"
         #endif
-        let d = IdentifyPayload(token: self.token, properties: .init(os: os, browser: "SwiftHooks", device: "SwiftHooks"), shard: [id, hook.sharder.shardCount])
+        let d = IdentifyPayload(
+            token: self.token,
+            properties: .init(os: os, browser: "SwiftHooks", device: "SwiftHooks"),
+            shard: [id, hook.sharder.shardCount]
+        )
         let payload = GatewayPayload(d: d, op: .identify, s: nil, t: nil)
         self.send(payload)
     }
@@ -159,7 +154,7 @@ final class Shard {
     }
     
     func reconnect() {
-        if let socket = socket, !socket.isClosed { 
+        if let socket = socket, !socket.isClosed {
             disconnect()
         }
         

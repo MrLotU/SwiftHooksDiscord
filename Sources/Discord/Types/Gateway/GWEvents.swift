@@ -13,14 +13,14 @@ public struct GatewayHello: DiscordGatewayType {
 
 public struct GatewayReady: DiscordGatewayType {
     public let version: Int
-//    public let user: User
+    public let user: User
     public let privateChannels: [String]
-//    public let guilds: [UnavailableGuild]
+    public let guilds: [UnavailableGuild]
     public let sessionId: String
     public let trace: [String]
     
     enum CodingKeys: String, CodingKey {
-        case version = "v"//, user, guilds
+        case version = "v", user, guilds
         case privateChannels = "private_channels"
         case sessionId = "session_id"
         case trace = "_trace"
@@ -49,21 +49,21 @@ public struct GatewayChannelPinsUpdate: DiscordGatewayType {
 // MARK: - Guild
 public struct GatewayGuildBanEvent: DiscordGatewayType {
     public let guildId: Snowflake
-//    public let user: User
+    public let user: User
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id"
-//        case user
+        case user
     }
 }
 
 public struct GatewayGuildEmojisUpdate: DiscordGatewayType {
     public let guildId: Snowflake
-//    public let emojis: [Emoji]
+    public let emojis: [Emoji]
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id"
-//        case emojis
+        case emojis
     }
 }
 
@@ -77,43 +77,43 @@ public struct GatewayGuildIntegrationsUpdate: DiscordGatewayType {
 
 public struct GatewayGuildMemberRemove: DiscordGatewayType {
     public let guildId: Snowflake
-//    public let user: User
+    public let user: User
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id"
-//        case user
+        case user
     }
 }
 
 public struct GatewayGuildMemberUpdate: DiscordGatewayType {
     public let guildId: Snowflake
     public let roles: [Snowflake]
-//    public let user: User
+    public let user: User
     public let nick: String
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id"
-        case roles, /*user,*/ nick
+        case roles, user, nick
     }
 }
 
 public struct GatewayGuildMembersChunk: DiscordGatewayType {
     public let guildId: Snowflake
-//    public let members: [GuildMember]
+    public let members: [GuildMember]
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id"
-//        case members
+        case members
     }
 }
 
 public struct GatewayGuildRoleEvent: DiscordGatewayType {
     public let guildId: Snowflake
-//    public let role: GuildRole
+    public let role: GuildRole
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id"
-//        case role
+        case role
     }
 }
 
@@ -154,12 +154,12 @@ public struct GatewayMessageReactionEvent: DiscordGatewayType {
     public let channelId: Snowflake
     public let messageId: Snowflake
     public let guildId: Snowflake
-//    public let emoji: PartialEmoji
+    public let emoji: PartialEmoji
     
     enum CodingKeys: String, CodingKey {
         case userId = "user_id", channelId = "channel_id"
         case messageId = "message_id", guildId = "guild_id"
-//        case emoji
+        case emoji
     }
 }
 
@@ -173,20 +173,40 @@ public struct GatewayMessageReactionRemoveAll: DiscordGatewayType {
     }
 }
 
+// MARK: - Status
+
+public struct GatewayStatusUpdate: Codable {
+    let since: Int?
+    let game: Activity?
+    let status: UserStatus
+    let afk: Bool
+}
+
 // MARK: - Presence
-//public struct GatewayPresenceUpdate: DiscordGatewayType {
-//    public let user: PartialUser
-//    public let roles: [Snowflake]?
-//    public let game: Activity?
-//    public let guildId: Snowflake?
-//    public let status: UserStatus?
-//    public let activities: [Activity]
-//    
-//    enum CodingKeys: String, CodingKey {
-//        case user, roles, game, status, activities
-//        case guildId = "guild_id"
-//    }
-//}
+public struct GatewayPresenceUpdate: DiscordGatewayType {
+    public let user: PartialUser
+    public let roles: [Snowflake]?
+    public let game: Activity?
+    public let guildId: Snowflake?
+    public let status: UserStatus?
+    public let activities: [Activity]
+    public let clientStatus: ClientStatus
+    public let premiumSince: String?
+    public let nick: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case user, roles, game, status, activities, nick
+        case guildId = "guild_id"
+        case clientStatus = "client_status"
+        case premiumSince = "premium_since"
+    }
+}
+
+public struct ClientStatus: Codable {
+    public let desktop: String?
+    public let mobile: String?
+    public let web: String?
+}
 
 public struct GatewayTypingStart: DiscordGatewayType {
     public let channelId: Snowflake

@@ -3,8 +3,13 @@ import Foundation
 public protocol DiscordGatewayType: PayloadType, Encodable { }
 public extension DiscordGatewayType {
     init?(_ data: Data) {
-        guard let i = try? SwiftHooks.decoder.decode(GatewayData<Self>.self, from: data) else { return nil }
-        self = i.d
+        do {
+            let i = try SwiftHooks.decoder.decode(GatewayData<Self>.self, from: data)
+            self = i.d
+        } catch {
+            SwiftHooks.logger.debug("Decoding error: \(error), \(error.localizedDescription)")
+            return nil
+        }
     }
 }
 

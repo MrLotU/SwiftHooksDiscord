@@ -1,0 +1,30 @@
+public enum Permission: Int, Codable {
+    case createInstantInvite = 0x1
+    case kickMembers = 0x2
+    case banMembers = 0x4
+    case administrator = 0x8
+    case manageChannels = 0x10
+    case manageGuild = 0x20
+    case readMessages = 0x400
+    case sendMessages = 0x800
+    case sendTtsMessages = 0x1000
+    case manageMessages = 0x2000
+    case embedLinks = 0x4000
+    case attachFiles = 0x8000
+    case readMessageHistory = 0x10000
+    case mentionEveryone = 0x20000
+    case useExternalEmoji = 0x40000
+    case connect = 0x100000
+    case speak = 0x200000
+    case muteMembers = 0x400000
+    case deafenMembers = 0x800000
+    case moveMembers = 0x1000000
+    case useVoiceActivity = 0x2000000
+    case changeNickname = 0x4000000
+    case manageNicknames = 0x8000000
+    case manageRoles = 0x10000000
+    case manageWebhooks = 0x20000000
+    case manageEmoji = 0x40000000
+    case viewAuditlog = 0x80
+    case addReactions = 0x40
+}

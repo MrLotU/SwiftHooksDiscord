@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Jari (LotU) on 01/12/2019.
-//
-
 public struct GatewayBotResponse: Codable {
     public let url: String
     public let shards: Int

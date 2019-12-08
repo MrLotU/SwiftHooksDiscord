@@ -7,6 +7,8 @@ extension HookID {
     }
 }
 
+public typealias Discord = DiscordEvent
+
 public final class DiscordHook: Hook {
     public typealias Options = DiscordHookOptions
     
@@ -28,7 +30,7 @@ public final class DiscordHook: Hook {
     
     public func boot(on elg: EventLoopGroup) throws {
         SwiftHooks.logger.info("Booting \(self.self)")
-        
+        try Discord.registerTestables(to: self)
         let amountOfShards: UInt8 = 1
         self.sharder.shardCount = amountOfShards
         for i in 0..<amountOfShards {
@@ -80,7 +82,7 @@ enum DiscordEventTranslator: EventTranslator {
     
     static func decodeConcreteType<T>(for event: GlobalEvent, with data: Data, as t: T.Type) -> T? {
         switch event {
-        case ._messageCreate: return DiscordMessage(data) as? T
+        case ._messageCreate: return Message(data) as? T
         }
     }
 }
@@ -93,48 +95,4 @@ public struct DiscordHookOptions: HookOptions {
     public init(token: String) {
         self.token = token
     }
-}
-
-public struct Guild: Codable, PayloadType {
-    public let name: String
-    
-    public init?(_ data: Data) {
-        self.name = "abc"
-    }
-    
-    public init(_ name: String) {
-        self.name = name
-    }
-}
-
-public struct DiscordChannel: Channelable {
-    public func send(_ msg: String) { }
-    public var mention: String { return "" }
-    
-    init() { }
-}
-
-public struct DiscordUser: Userable {
-    public var id: IDable { return "" }
-    public var mention: String { return "" }
-    
-    init() { }
-}
-
-public struct DiscordMessage: Messageable {
-    public var channel: Channelable { _channel }
-    public var _channel: DiscordChannel
-    public var content: String
-    public var author: Userable { _author }
-    public var _author: DiscordUser
-    
-    public init?(_ data: Data) {
-        self._author = DiscordUser()
-        self._channel = DiscordChannel()
-        self.content = "!ping"
-    }
-    
-    public func reply(_ content: String) { }
-    public func edit(_ content: String) { }
-    public func delete() { }
 }
