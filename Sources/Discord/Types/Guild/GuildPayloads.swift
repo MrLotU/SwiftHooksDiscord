@@ -71,7 +71,7 @@ public struct ModifyNickMePayload: Codable {
 
 public struct GuildRoleCreatePayload: Codable {
     public let name: String
-    public let permissions: Permission?
+    public let permissions: Permissions?
     public let color: Int?
     public let hoist: Bool?
     public let mentionable: Bool?
@@ -84,7 +84,7 @@ public struct ModifyRolePositionPayload: Codable {
 
 public struct ModifyRolePayload: Codable {
     public let name: String?
-    public let permissions: Permission?
+    public let permissions: Permissions?
     public let color: Int?
     public let hoist: Bool?
     public let mentionable: Bool?

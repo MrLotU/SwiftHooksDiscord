@@ -13,10 +13,13 @@ public struct User: DiscordGatewayType {
     public let discriminator: String
     public let avatar: String?
     public let isBot: Bool?
+    public let isSystem: Bool?
     public let locale: String?
     public let mfaEnabled: Bool?
     public let isVerified: Bool?
     public let email: String?
+    public let flags: Int?
+    public let premiumType: PremiumType?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -24,10 +27,13 @@ public struct User: DiscordGatewayType {
         case discriminator
         case avatar
         case isBot = "bot"
+        case isSystem = "system"
         case locale
         case mfaEnabled = "mfa_enabled"
         case isVerified = "verified"
         case email
+        case flags
+        case premiumType = "premium_type"
     }
 }
 

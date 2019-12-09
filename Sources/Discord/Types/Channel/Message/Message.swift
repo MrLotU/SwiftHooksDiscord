@@ -14,6 +14,7 @@ public struct Message: DiscordGatewayType {
     public let mentionsEveryone: Bool
     public private(set) var mentions: [User]
     public let mentionRoles: [Snowflake]
+    public let mentionChannels: [ChannelMention]?
     public let attachments: [Attachment]
     public let embeds: [Embed]
     public let reactions: [Reaction]?
@@ -23,9 +24,12 @@ public struct Message: DiscordGatewayType {
     public let type: MessageType
     public let activity: MessageActivity?
     public let application: MessageApplication?
+    public let reference: MessageReference?
+    public let flags: MessageFlags?
     
     enum CodingKeys: String, CodingKey {
         case id , content, member, timestamp, mentions, attachments, embeds, reactions, nonce, type, activity, application
+        case reference, flags
         case _author =  "author"
         case channelId = "channel_id"
         case guildId = "guild_id"
@@ -33,6 +37,7 @@ public struct Message: DiscordGatewayType {
         case isTts = "tts"
         case mentionsEveryone = "mention_everyone"
         case mentionRoles = "mention_roles"
+        case mentionChannels = "mention_channels"
         case isPinned = "pinned"
         case webhookId = "webhook_id"
     }
@@ -113,5 +118,5 @@ extension Message: Snowflakable {
 //}
 
 public enum MessageType: Int, Codable {
-    case text = 0, recipientAdd = 1, recipientRemove = 2, call = 3, channelNameChange = 4, channelIconChange = 5, channelPinnedMessage = 6, guildMemberJoin = 7
+    case text = 0, recipientAdd = 1, recipientRemove = 2, call = 3, channelNameChange = 4, channelIconChange = 5, channelPinnedMessage = 6, guildMemberJoin = 7, userPremiumGuildSubscription = 8, subscriptionTierOne, subscriptionTierTwo, subscriptionTierThree, channelFollowAdd
 }

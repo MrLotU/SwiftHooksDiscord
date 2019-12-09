@@ -9,7 +9,7 @@ public struct CreateDMPayload: Codable {
 
 public struct CreateGroupDMPayload: Codable {
     public let access_tokens: [String]
-    public let nicks: [Int: String]
+    public let nicks: [Snowflake: String]
 }
 
 public struct UserConnection: Codable {
@@ -18,10 +18,19 @@ public struct UserConnection: Codable {
     public let type: String
     public let isRevoked: Bool
 //    public var integrations: [Integration]
+    public let isVerified: Bool
+    public let friendSync: Bool
+    public let showActivity: Bool
+    public let visibility: Visibility
+    
+    public enum Visibility: Int, Codable {
+        case none, everyone
+    }
     
     enum CodingKeys: String, CodingKey {
-        case id, name, type
-        case isRevoked = "revoked"
+        case id, name, type, visibility
+        case isRevoked = "revoked", isVerified = "is_verified"
+        case friendSync = "friend_sync", showActivity = "show_activity"
     }
 }
 
@@ -72,4 +81,21 @@ public struct Activity: Codable {
     public enum ActivityType: Int, Codable {
         case game, streaming, listening, custom = 4
     }
+}
+
+public enum PremiumType: Int, Codable {
+    case nitroClassic = 1, nitro
+}
+
+public enum Flags: Int, Codable {
+    case none
+    case employee
+    case partner
+    case events
+    case bugHunter
+    case houseBravery
+    case houseBrilliance
+    case earlySupporter
+    case teamUser
+    case system
 }

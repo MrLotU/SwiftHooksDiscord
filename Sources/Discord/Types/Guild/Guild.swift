@@ -18,7 +18,7 @@ public class Guild: DiscordGatewayType {
     public let splash: String?
     public let isOwner: Bool?
     public let ownerId: Snowflake
-    public let permissions: Int?
+    public let permissions: Permissions?
     public let region: String
     public let afkChannelId: Snowflake?
     public let afkTimeout: TimeInterval?
@@ -43,6 +43,14 @@ public class Guild: DiscordGatewayType {
     public internal(set) var members: [GuildMember]
     public internal(set) var channels: [Channel]
     public let presences: [GatewayPresenceUpdate]
+    public let maxPresences: Int?
+    public let maxMembers: Int?
+    public let vanityUrlCode: String?
+    public let description: String?
+    public let banner: String?
+    public let premiumTier: PremiumTier
+    public let premiumSubscriptionCount: Int?
+    public let preferredLocale: String
     
     enum CodingKeys: String, CodingKey {
         case id, name, icon, splash, permissions, region, roles, emojis, features, members, channels, presences
@@ -51,6 +59,8 @@ public class Guild: DiscordGatewayType {
         case defaultMessageNotifications = "default_message_notifications", explicitContentFilter = "explicit_content_filter"
         case mfaLevel = "mfa_level", applicationId = "application_id", widgetEnabled = "widget_enabled", widgetChannelId = "widget_channel_id"
         case systemChannelId = "system_channel_id", joinedAt = "joined_at", isLarge = "large", isUnavailable = "unavailable", memberCount = "member_count"
+        case maxPresences = "max_presences", vanityUrlCode = "vanity_url_code", maxMembers = "max_members", description, banner
+        case premiumTier = "premium_tier", premiumSubscriptionCount = "premium_subscription_count", preferredLocale = "preferred_locale"
     }
     
     public required init(from decoder: Decoder) throws {
@@ -61,7 +71,7 @@ public class Guild: DiscordGatewayType {
         self.splash = try container.decodeIfPresent(String.self, forKey: .splash)
         self.isOwner = try container.decodeIfPresent(Bool.self, forKey: .isOwner)
         self.ownerId = try container.decode(Snowflake.self, forKey: .ownerId)
-        self.permissions = try container.decodeIfPresent(Int.self, forKey: .permissions)
+        self.permissions = try container.decodeIfPresent(Permissions.self, forKey: .permissions)
         self.region = try container.decode(String.self, forKey: .region)
         self.afkChannelId = try container.decodeIfPresent(Snowflake.self, forKey: .afkChannelId)
         let timeout = try container.decodeIfPresent(Int.self, forKey: .afkTimeout)
@@ -86,6 +96,14 @@ public class Guild: DiscordGatewayType {
         self.members = try container.decodeIfPresent([GuildMember].self, forKey: .members) ?? []
         self.channels = try container.decodeIfPresent([Channel].self, forKey: .channels) ?? []
         self.presences = try container.decodeIfPresent([GatewayPresenceUpdate].self, forKey: .presences) ?? []
+        self.maxPresences = try container.decodeIfPresent(Int.self, forKey: .maxPresences)
+        self.maxMembers = try container.decodeIfPresent(Int.self, forKey: .maxMembers)
+        self.vanityUrlCode = try container.decodeIfPresent(String.self, forKey: .vanityUrlCode)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
+        self.banner = try container.decodeIfPresent(String.self, forKey: .banner)
+        self.premiumTier = try container.decodeIfPresent(PremiumTier.self, forKey: .premiumTier)
+        self.premiumSubscriptionCount = try container.decodeIfPresent(Int.self, forKey: .premiumSubscriptionCount)
+        self.preferredLocale = try container.decode(String.self, forKey: .preferredLocale)
     }
 }
 
@@ -212,5 +230,9 @@ extension Guild {
         case featureable = "FEATURABLE"
         case animatedIcon = "ANIMATED_ICON"
         case banner = "BANNER"
+    }
+    
+    public enum PremiumTier: Int, Codable {
+        case none, tierOne, tierTwo, tierThree
     }
 }

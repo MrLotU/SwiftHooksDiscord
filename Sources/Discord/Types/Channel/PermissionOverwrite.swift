@@ -1,8 +1,8 @@
 public struct PermissionOverwrite: Codable {
     public let id: Snowflake
     public let type: PermissionOverwriteType
-    public let allow: Int
-    public let deny: Int
+    public let allow: Permissions
+    public let deny: Permissions
 }
 
 extension PermissionOverwrite: Snowflakable {

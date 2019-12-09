@@ -90,7 +90,6 @@ public enum DiscordEvent: String, Codable, EventType {
         hook.listen(for: Discord.messageDelete, handler: thing)
         hook.listen(for: Discord.messageReactionAdd, handler: thing)
         hook.listen(for: Discord.messageReactionRemove, handler: thing)
-        hook.listen(for: Discord.presenceUpdate, handler: thing)
         hook.listen(for: Discord.typingStart, handler: thing)
     }
 }

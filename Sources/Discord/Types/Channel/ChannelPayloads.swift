@@ -29,7 +29,7 @@ public struct MessageCreatePayload: Codable {
 }
 
 public struct MessageEditPayload: Codable {
-    public let content: String
+    public let content: String?
     public let embed: Embed?
 }
 
