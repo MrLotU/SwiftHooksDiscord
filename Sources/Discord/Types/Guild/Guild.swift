@@ -101,7 +101,7 @@ public class Guild: DiscordGatewayType {
         self.vanityUrlCode = try container.decodeIfPresent(String.self, forKey: .vanityUrlCode)
         self.description = try container.decodeIfPresent(String.self, forKey: .description)
         self.banner = try container.decodeIfPresent(String.self, forKey: .banner)
-        self.premiumTier = try container.decodeIfPresent(PremiumTier.self, forKey: .premiumTier)
+        self.premiumTier = try container.decode(PremiumTier.self, forKey: .premiumTier)
         self.premiumSubscriptionCount = try container.decodeIfPresent(Int.self, forKey: .premiumSubscriptionCount)
         self.preferredLocale = try container.decode(String.self, forKey: .preferredLocale)
     }
