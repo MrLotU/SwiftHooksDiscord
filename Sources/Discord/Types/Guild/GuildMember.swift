@@ -25,7 +25,7 @@ extension GuildMember: CustomStringConvertible, CustomDebugStringConvertible {
     }
     
     public var debugDescription: String {
-        return "<GuildMember \(user?.id)>"
+        return "<GuildMember \(user?.id.description ?? "")>"
     }
 }
 

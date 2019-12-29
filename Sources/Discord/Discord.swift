@@ -1,4 +1,5 @@
 import NIO
+import NIOConcurrencyHelpers
 import Foundation
 
 extension HookID {
@@ -16,20 +17,23 @@ public final class DiscordHook: Hook {
     public let translator: EventTranslator.Type = DiscordEventTranslator.self
 
     var token: String
-    let sharder = Sharder()
+    let sharder: Sharder
+    let lock: Lock
     
     public internal(set) var discordListeners: [DiscordEvent: [EventClosure]]
     
-    public weak var hooks: SwiftHooks?
+    public private(set) var hooks: SwiftHooks?
     
-    public init(_ options: DiscordHookOptions, hooks: SwiftHooks?) {
+    public init(_ options: DiscordHookOptions) {
         self.token = options.token
-        self.hooks = hooks
+        self.sharder = Sharder()
+        self.lock = Lock()
         self.discordListeners = [:]
     }
     
-    public func boot(on elg: EventLoopGroup) throws {
+    public func boot(on elg: EventLoopGroup, hooks: SwiftHooks? = nil) throws {
         SwiftHooks.logger.info("Booting \(self.self)")
+        self.hooks = hooks
         try Discord.registerTestables(to: self)
         let amountOfShards: UInt8 = 1
         self.sharder.shardCount = amountOfShards
@@ -40,19 +44,25 @@ public final class DiscordHook: Hook {
     
     public func shutdown() {
         self.sharder.disconnect()
+        self.lock.withLockVoid {
+            self.hooks = nil
+            self.discordListeners = [:]
+        }
     }
     
     public func listen<T, I>(for event: T, handler: @escaping EventHandler<I>) where T : _Event, I == T.ContentType {
         guard let event = event as? _DiscordEvent<DiscordEvent, I> else { return }
-        var closures = self.discordListeners[event, default: []]
-        closures.append { (data) in
-            guard let object = I.init(data) else {
-                SwiftHooks.logger.debug("Unable to extract \(I.self) from data.")
-                return
+        self.lock.withLockVoid {
+            var closures = self.discordListeners[event, default: []]
+            closures.append { (data) in
+                guard let object = I.init(data) else {
+                    SwiftHooks.logger.debug("Unable to extract \(I.self) from data.")
+                    return
+                }
+                try handler(object)
             }
-            try handler(object)
+            self.discordListeners[event] = closures
         }
-        self.discordListeners[event] = closures
     }
     
     public func dispatchEvent<E>(_ event: E, with raw: Data) where E: EventType {
@@ -60,14 +70,16 @@ public final class DiscordHook: Hook {
             self.hooks?.dispatchEvent(event, with: raw, from: self)
         }
         guard let event = event as? DiscordEvent else { return }
-        let handlers = self.discordListeners[event]
-        handlers?.forEach({ (handler) in
-            do {
-                try handler(raw)
-            } catch {
-                SwiftHooks.logger.error("\(error.localizedDescription)")
-            }
-        })
+        self.lock.withLockVoid {
+            let handlers = self.discordListeners[event]
+            handlers?.forEach({ (handler) in
+                do {
+                    try handler(raw)
+                } catch {
+                    SwiftHooks.logger.error("\(error.localizedDescription)")
+                }
+            })
+        }
     }
 }
 
