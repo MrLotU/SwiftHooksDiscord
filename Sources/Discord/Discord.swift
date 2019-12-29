@@ -15,96 +15,28 @@ public final class DiscordHook: Hook {
     
     public static let id: HookID = .discord
     public let translator: EventTranslator.Type = DiscordEventTranslator.self
-
-    var token: String
-    let sharder: Sharder
-    let lock: Lock
-    
+    internal let token: String
+    internal let sharder: Sharder
+    internal let lock: Lock
+    public let eventLoopGroup: EventLoopGroup
+    public private(set) var client: DiscordRESTClient
     public internal(set) var discordListeners: [DiscordEvent: [EventClosure]]
+    public internal(set) var hooks: SwiftHooks?
     
-    public private(set) var hooks: SwiftHooks?
+    static let decoder = JSONDecoder()
+    static var decodingInfo: CodingUserInfoKey {
+        return CodingUserInfoKey(rawValue: "handler")!
+    }
     
-    public init(_ options: DiscordHookOptions) {
+    public init(_ options: DiscordHookOptions, _ elg: EventLoopGroup) {
+        self.eventLoopGroup = elg
         self.token = options.token
         self.sharder = Sharder()
         self.lock = Lock()
         self.discordListeners = [:]
-    }
-    
-    public func boot(on elg: EventLoopGroup, hooks: SwiftHooks? = nil) throws {
-        SwiftHooks.logger.info("Booting \(self.self)")
-        self.hooks = hooks
-        try Discord.registerTestables(to: self)
-        let amountOfShards: UInt8 = 1
-        self.sharder.shardCount = amountOfShards
-        for i in 0..<amountOfShards {
-            self.sharder.spawn(i, on: "wss://gateway.discord.gg", withToken: token, on: elg, handledBy: self)
-        }
-    }
-    
-    public func shutdown() {
-        self.sharder.disconnect()
-        self.lock.withLockVoid {
-            self.hooks = nil
-            self.discordListeners = [:]
-        }
-    }
-    
-    public func listen<T, I>(for event: T, handler: @escaping EventHandler<I>) where T : _Event, I == T.ContentType {
-        guard let event = event as? _DiscordEvent<DiscordEvent, I> else { return }
-        self.lock.withLockVoid {
-            var closures = self.discordListeners[event, default: []]
-            closures.append { (data) in
-                guard let object = I.init(data) else {
-                    SwiftHooks.logger.debug("Unable to extract \(I.self) from data.")
-                    return
-                }
-                try handler(object)
-            }
-            self.discordListeners[event] = closures
-        }
-    }
-    
-    public func dispatchEvent<E>(_ event: E, with raw: Data) where E: EventType {
-        defer {
-            self.hooks?.dispatchEvent(event, with: raw, from: self)
-        }
-        guard let event = event as? DiscordEvent else { return }
-        self.lock.withLockVoid {
-            let handlers = self.discordListeners[event]
-            handlers?.forEach({ (handler) in
-                do {
-                    try handler(raw)
-                } catch {
-                    SwiftHooks.logger.error("\(error.localizedDescription)")
-                }
-            })
-        }
+        self.client = DiscordRESTClient(self.eventLoopGroup, self.token)
+        
+        DiscordHook.decoder.userInfo[DiscordHook.decodingInfo] = self
     }
 }
 
-enum DiscordEventTranslator: EventTranslator {
-    static func translate<E>(_ event: E) -> GlobalEvent? where E : EventType {
-        guard let e = event as? DiscordEvent else { return nil }
-        switch e {
-        case ._messageCreate: return ._messageCreate
-        default: return nil
-        }
-    }
-    
-    static func decodeConcreteType<T>(for event: GlobalEvent, with data: Data, as t: T.Type) -> T? {
-        switch event {
-        case ._messageCreate: return Message(data) as? T
-        }
-    }
-}
-
-public struct DiscordHookOptions: HookOptions {
-    public typealias H = DiscordHook
-    
-    var token: String
-    
-    public init(token: String) {
-        self.token = token
-    }
-}

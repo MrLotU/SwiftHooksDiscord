@@ -11,7 +11,24 @@ public struct GuildBan: Codable {
     public let user: User
 }
 
-public class Guild: DiscordGatewayType {
+public class Guild: DiscordGatewayType, DiscordHandled {
+    public internal(set) var client: DiscordClient! {
+        didSet {
+            var newMembers = [GuildMember]()
+            for var member in self.members {
+                member.client = client
+                newMembers.append(member)
+            }
+            self.members = newMembers
+            var newChannels = [Channel]()
+            for var channel in self.channels {
+                channel.client = client
+                newChannels.append(channel)
+            }
+            self.channels = newChannels
+        }
+    }
+    
     public let id: Snowflake
     public let name: String
     public let icon: String?
@@ -112,75 +129,77 @@ extension Guild {
         return members[ownerId]! // If this is nil, the universe is broken
     }
     
-//    public func get_permissions(for member: GuildMember) -> Permission {
-//        if member.id == ownerId {
-//            return .administrator
-//        }
-//        // TODO: Imp
-//        fatalError()
-//    }
-//
-//    public func createRole(named name: String, permissions: Permission? = nil, color: Int = 1, isHoisted: Bool = false, isMentionable: Bool = false) -> EventLoopFuture<GuildRole> {
-//        let p = GuildRoleCreatePayload.init(name: name, permissions: permissions, color: color, hoist: isHoisted, mentionable: isMentionable)
-//        return handler.client.execute(.GuildRolesCreate(id), p)
-//    }
-//
-//    public func deleteRole(_ role: GuildRole) {
-//        handler.client.execute(.GuildRolesDelete(id, role.id))
-//    }
-//
-//    public func requestGuildMembers() {
-//        // TODO: Imp
-//    }
-//
-//    public func getBans() -> EventLoopFuture<[GuildBan]> {
-//        return handler.client.execute(.GuildBansList(id))
-//    }
-//
-//    public func ban(_ member: Snowflakable) throws {
-//        guard member is GuildMember || member is User else {
+    public func get_permissions(for member: GuildMember) -> Permissions {
+        if member.id == ownerId {
+            return .administrator
+        }
+        // TODO: Imp
+        fatalError()
+    }
+
+    public func createRole(named name: String, permissions: Permissions? = nil, color: Int = 1, isHoisted: Bool = false, isMentionable: Bool = false) -> EventLoopFuture<GuildRole> {
+        let p = GuildRoleCreatePayload.init(name: name, permissions: permissions, color: color, hoist: isHoisted, mentionable: isMentionable)
+        return client.client.execute(.GuildRolesCreate(id), p)
+    }
+
+    public func deleteRole(_ role: GuildRole) {
+        client.client.execute(.GuildRolesDelete(id, role.id))
+    }
+
+    public func requestGuildMembers() {
+        // TODO: Imp
+    }
+
+    public func getBans() -> EventLoopFuture<[GuildBan]> {
+        return client.client.execute(.GuildBansList(id))
+    }
+
+    public func ban(_ member: Snowflakable) throws {
+        guard member is GuildMember || member is User else {
+            return
 //            throw DiscordRestError.UnbannableInstance
-//        }
-//
-//        handler.client.execute(.GuildBansCreate(id, member.snowflakeDescription))
-//    }
-//
-//    public func unban(_ member: Snowflakable) throws {
-//        guard member is GuildMember || member is User else {
+        }
+
+        client.client.execute(.GuildBansCreate(id, member.snowflakeDescription))
+    }
+
+    public func unban(_ member: Snowflakable) throws {
+        guard member is GuildMember || member is User else {
+            return
 //            throw DiscordRestError.UnbannableInstance
-//        }
-//
-//        handler.client.execute(.GuildBansRemove(id, member.snowflakeDescription))
-//    }
-//
-//    public func createCategory(named name: String, at pos: Int? = nil) -> EventLoopFuture<Channel> {
-//        let p = CreatChannelPayload.init(name: name, type: .category, topic: nil, bitrate: nil, userLimit: nil, rateLimitPerUser: nil, position: pos, permissionOverwrites: nil, parentId: nil, nsfw: nil)
-//        return handler.client.execute(.GuildChannelsCreate(id), p)
-//    }
-//
-//    public func createTextChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, topic: String? = nil, isNsfw: Bool? = nil) throws -> EventLoopFuture<Channel> {
-//        guard parent == nil || parent?.type == .category else {
-//            throw DiscordRestError.UnusableParent
-//        }
-//        let p = CreatChannelPayload.init(name: name, type: .text, topic: topic, bitrate: nil, userLimit: nil, rateLimitPerUser: nil, position: pos, permissionOverwrites: nil, parentId: parent?.id, nsfw: isNsfw)
-//        return handler.client.execute(.GuildChannelsCreate(id), p)
-//    }
-//
-//    public func createVoiceChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, bitrate: Int? = nil, userLimit: Int? = nil, rateLimitPerUser: Int? = nil) throws -> EventLoopFuture<Channel> {
-//        guard parent == nil || parent?.type == .category else {
-//            throw DiscordRestError.UnusableParent
-//        }
-//        let p = CreatChannelPayload.init(name: name, type: .voice, topic: nil, bitrate: bitrate, userLimit: userLimit, rateLimitPerUser: rateLimitPerUser, position: pos, permissionOverwrites: nil, parentId: parent?.id, nsfw: nil)
-//        return handler.client.execute(.GuildChannelsCreate(id), p)
-//    }
-//
-//    public func leave() {
-//        handler.client.execute(.UserGuildLeave(id))
-//    }
-//
-//    public func getEmojis() -> EventLoopFuture<Emoji> {
-//        return handler.client.execute(.GuildEmojisGet(id))
-//    }
+        }
+
+        client.client.execute(.GuildBansRemove(id, member.snowflakeDescription))
+    }
+
+    public func createCategory(named name: String, at pos: Int? = nil) -> EventLoopFuture<Channel> {
+        let p = CreatChannelPayload.init(name: name, type: .category, topic: nil, bitrate: nil, userLimit: nil, rateLimitPerUser: nil, position: pos, permissionOverwrites: nil, parentId: nil, nsfw: nil)
+        return client.client.execute(.GuildChannelsCreate(id), p)
+    }
+
+    public func createTextChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, topic: String? = nil, isNsfw: Bool? = nil) throws -> EventLoopFuture<Channel> {
+        guard parent == nil || parent?.type == .category else {
+            fatalError() //throw DiscordRestError.UnusableParent
+        }
+        let p = CreatChannelPayload.init(name: name, type: .text, topic: topic, bitrate: nil, userLimit: nil, rateLimitPerUser: nil, position: pos, permissionOverwrites: nil, parentId: parent?.id, nsfw: isNsfw)
+        return client.client.execute(.GuildChannelsCreate(id), p)
+    }
+
+    public func createVoiceChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, bitrate: Int? = nil, userLimit: Int? = nil, rateLimitPerUser: Int? = nil) throws -> EventLoopFuture<Channel> {
+        guard parent == nil || parent?.type == .category else {
+            fatalError() //throw DiscordRestError.UnusableParent
+        }
+        let p = CreatChannelPayload.init(name: name, type: .voice, topic: nil, bitrate: bitrate, userLimit: userLimit, rateLimitPerUser: rateLimitPerUser, position: pos, permissionOverwrites: nil, parentId: parent?.id, nsfw: nil)
+        return client.client.execute(.GuildChannelsCreate(id), p)
+    }
+
+    public func leave() {
+        client.client.execute(.UserGuildLeave(id))
+    }
+
+    public func getEmojis() -> EventLoopFuture<Emoji> {
+        return client.client.execute(.GuildEmojisGet(id))
+    }
     
     public func getIconUrl(_ format: String = "png", _ size: Int = 1024) -> String? {
         guard let icon = self.icon else { return nil }

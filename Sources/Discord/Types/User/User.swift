@@ -6,7 +6,8 @@ public enum UserStatus: String, Codable {
     case online, dnd, idle, invisible, offline
 }
 
-public struct User: DiscordGatewayType {
+public struct User: DiscordGatewayType, DiscordHandled {
+    public internal(set) var client: DiscordClient!
     
     public let id: Snowflake
     public let username: String

@@ -1,9 +1,5 @@
 import Foundation
 
-enum HTTPMethod {
-    case GET, POST, PUT, PATCH, DELETE
-}
-
 /// Holds all info required to execute a route on the Discord REST API
 public struct Route {
     /// Method of the route

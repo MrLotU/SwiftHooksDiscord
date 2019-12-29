@@ -1,10 +1,17 @@
 import Foundation
 
 public protocol DiscordGatewayType: PayloadType, Encodable { }
+protocol DiscordHandled {
+    var client: DiscordClient! { get set }
+}
 public extension DiscordGatewayType {
     init?(_ data: Data) {
         do {
-            let i = try SwiftHooks.decoder.decode(GatewayData<Self>.self, from: data)
+            let i = try DiscordHook.decoder.decode(GatewayData<Self>.self, from: data)
+            if var d = i.d as? DiscordHandled {
+                d.client = DiscordHook.decoder.userInfo[DiscordHook.decodingInfo] as? DiscordClient
+                self = d as! Self
+            }
             self = i.d
         } catch {
             SwiftHooks.logger.debug("Decoding error: \(error), \(error.localizedDescription)")
