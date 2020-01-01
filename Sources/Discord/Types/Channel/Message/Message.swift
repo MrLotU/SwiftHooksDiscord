@@ -3,7 +3,7 @@ import NIO
 public struct Message: DiscordGatewayType, DiscordHandled {
     public internal(set) var client: DiscordClient! {
         didSet {
-            self._author?.client = client
+            self.author?.client = client
             self.member?.client = client
             var newMentions = [User]()
             for var u in self.mentions {
@@ -17,7 +17,7 @@ public struct Message: DiscordGatewayType, DiscordHandled {
     public let id: Snowflake
     public let channelId: Snowflake
     public let guildId: Snowflake?
-    public private(set) var _author: User?
+    public private(set) var author: User?
     public internal(set) var member: GuildMember?
     public let content: String
     public let timestamp: String
@@ -40,9 +40,8 @@ public struct Message: DiscordGatewayType, DiscordHandled {
     public let flags: MessageFlags?
     
     enum CodingKeys: String, CodingKey {
-        case id , content, member, timestamp, mentions, attachments, embeds, reactions, nonce, type, activity, application
+        case id, author, content, member, timestamp, mentions, attachments, embeds, reactions, nonce, type, activity, application
         case reference, flags
-        case _author =  "author"
         case channelId = "channel_id"
         case guildId = "guild_id"
         case editedAt = "edited_timestamp"
@@ -56,15 +55,17 @@ public struct Message: DiscordGatewayType, DiscordHandled {
 }
 
 extension Message: Messageable {
-    public var channel: Channelable {
+    public var gChannel: Channelable {
         fatalError()
     }
     
-    public var author: Userable {
+    public var gAuthor: Userable {
         fatalError()
     }
     
-    public func reply(_ content: String) { }
+    public func reply(_ content: String) {
+        let _: EventLoopFuture<Message> = self.reply(content)
+    }
     
     public func edit(_ content: String) { }
     
@@ -78,31 +79,31 @@ extension Message: Snowflakable {
 }
 
 extension Message {
-//    public var isNotMeOrBot: Bool {
-//        guard let author = self._author else { return false }
-//        return !(author.id == client.state.me.id) && !(author.isBot ?? false)
-//    }
-//
-//    public var channel: Channel {
-//        return self.client.state.channels[channelId]!
-//    }
-//
-//    public var guild: Guild? {
-//        return self.channel.guild
-//    }
-//
-//    public func pin() {
-//        self.channel.pin(message: self.id)
-//    }
-//
-//    public func unpin() {
-//        self.channel.unpin(message: self.id)
-//    }
+    public var isNotMeOrBot: Bool {
+        guard let author = self.author else { return false }
+        return !(author.id == client.state.me.id) && !(author.isBot ?? false)
+    }
 
-//    @discardableResult
-//    public func reply(_ content: String, isTts: Bool = false, embed: Embed? = nil) -> EventLoopFuture<Message> {
-//        return self.channel.send(content, isTts: isTts, embed: embed)
-//    }
+    public var channel: Channel {
+        return self.client.state.channels[channelId]!
+    }
+
+    public var guild: Guild? {
+        return self.channel.guild
+    }
+
+    public func pin() {
+        self.channel.pin(message: self.id)
+    }
+
+    public func unpin() {
+        self.channel.unpin(message: self.id)
+    }
+
+    @discardableResult
+    public func reply(_ content: String, isTts: Bool = false, embed: Embed? = nil) -> EventLoopFuture<Message> {
+        return self.channel.send(content, isTts: isTts, embed: embed)
+    }
 
     public func edit(_ content: String, embed: Embed? = nil) throws -> EventLoopFuture<Message> {
         let body = MessageEditPayload(content: content, embed: embed)

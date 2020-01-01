@@ -1,7 +1,8 @@
 import Foundation
 
 // MARK: - Connection
-public struct GatewayHello: DiscordGatewayType {
+public struct GatewayHello: DiscordGatewayType, DiscordHandled {
+    public internal(set) var client: DiscordClient!
     public let heartbeatInterval: Int
     public let trace: [String]
     
@@ -11,7 +12,8 @@ public struct GatewayHello: DiscordGatewayType {
     }
 }
 
-public struct GatewayReady: DiscordGatewayType {
+public struct GatewayReady: DiscordGatewayType, DiscordHandled {
+    public internal(set) var client: DiscordClient!
     public let version: Int
     public let user: User
     public let privateChannels: [String]
@@ -27,7 +29,8 @@ public struct GatewayReady: DiscordGatewayType {
     }
 }
 
-public struct GatewayResumed: DiscordGatewayType {
+public struct GatewayResumed: DiscordGatewayType, DiscordHandled {
+    public internal(set) var client: DiscordClient!
     public let trace: [String]
     
     enum CodingKeys: String, CodingKey {
@@ -36,7 +39,8 @@ public struct GatewayResumed: DiscordGatewayType {
 }
 
 // MARK: - Channel
-public struct GatewayChannelPinsUpdate: DiscordGatewayType {
+public struct GatewayChannelPinsUpdate: DiscordGatewayType, DiscordHandled {
+    public internal(set) var client: DiscordClient!
     public let channelId: Snowflake
     public let lastPinTimestamp: Int
     
@@ -47,7 +51,8 @@ public struct GatewayChannelPinsUpdate: DiscordGatewayType {
 }
 
 // MARK: - Guild
-public struct GatewayGuildBanEvent: DiscordGatewayType {
+public struct GatewayGuildBanEvent: DiscordGatewayType, DiscordHandled {
+    public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let user: User
     
@@ -57,7 +62,8 @@ public struct GatewayGuildBanEvent: DiscordGatewayType {
     }
 }
 
-public struct GatewayGuildEmojisUpdate: DiscordGatewayType {
+public struct GatewayGuildEmojisUpdate: DiscordGatewayType, DiscordHandled {
+    public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let emojis: [Emoji]
     
@@ -67,7 +73,8 @@ public struct GatewayGuildEmojisUpdate: DiscordGatewayType {
     }
 }
 
-public struct GatewayGuildIntegrationsUpdate: DiscordGatewayType {
+public struct GatewayGuildIntegrationsUpdate: DiscordGatewayType, DiscordHandled {
+    public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     
     enum CodingKeys: String, CodingKey {
@@ -75,7 +82,8 @@ public struct GatewayGuildIntegrationsUpdate: DiscordGatewayType {
     }
 }
 
-public struct GatewayGuildMemberRemove: DiscordGatewayType {
+public struct GatewayGuildMemberRemove: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let user: User
     
@@ -85,7 +93,8 @@ public struct GatewayGuildMemberRemove: DiscordGatewayType {
     }
 }
 
-public struct GatewayGuildMemberUpdate: DiscordGatewayType {
+public struct GatewayGuildMemberUpdate: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let roles: [Snowflake]
     public let user: User
@@ -97,7 +106,8 @@ public struct GatewayGuildMemberUpdate: DiscordGatewayType {
     }
 }
 
-public struct GatewayGuildMembersChunk: DiscordGatewayType {
+public struct GatewayGuildMembersChunk: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let members: [GuildMember]
     
@@ -107,7 +117,8 @@ public struct GatewayGuildMembersChunk: DiscordGatewayType {
     }
 }
 
-public struct GatewayGuildRoleEvent: DiscordGatewayType {
+public struct GatewayGuildRoleEvent: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let role: GuildRole
     
@@ -117,7 +128,8 @@ public struct GatewayGuildRoleEvent: DiscordGatewayType {
     }
 }
 
-public struct GatewayGuildRoleDelete: DiscordGatewayType {
+public struct GatewayGuildRoleDelete: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let roleId: Snowflake
     
@@ -127,7 +139,8 @@ public struct GatewayGuildRoleDelete: DiscordGatewayType {
 }
 
 // MARK: - Message
-public struct GatewayMessageDelete: DiscordGatewayType {
+public struct GatewayMessageDelete: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let id: Snowflake
     public let channelId: Snowflake
     public let guildId: Snowflake?
@@ -138,7 +151,8 @@ public struct GatewayMessageDelete: DiscordGatewayType {
     }
 }
 
-public struct GatewayMessageDeleteBulk: DiscordGatewayType {
+public struct GatewayMessageDeleteBulk: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let ids: [Snowflake]
     public let channelId: Snowflake
     public let guildId: Snowflake?
@@ -149,7 +163,8 @@ public struct GatewayMessageDeleteBulk: DiscordGatewayType {
     }
 }
 
-public struct GatewayMessageReactionEvent: DiscordGatewayType {
+public struct GatewayMessageReactionEvent: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let userId: Snowflake
     public let channelId: Snowflake
     public let messageId: Snowflake
@@ -163,7 +178,8 @@ public struct GatewayMessageReactionEvent: DiscordGatewayType {
     }
 }
 
-public struct GatewayMessageReactionRemoveAll: DiscordGatewayType {
+public struct GatewayMessageReactionRemoveAll: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let channelId: Snowflake
     public let messageId: Snowflake
     public let guildId: Snowflake
@@ -183,7 +199,8 @@ public struct GatewayStatusUpdate: Codable {
 }
 
 // MARK: - Presence
-public struct GatewayPresenceUpdate: DiscordGatewayType {
+public struct GatewayPresenceUpdate: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let user: PartialUser
     public let roles: [Snowflake]?
     public let game: Activity?
@@ -208,7 +225,8 @@ public struct ClientStatus: Codable {
     public let web: String?
 }
 
-public struct GatewayTypingStart: DiscordGatewayType {
+public struct GatewayTypingStart: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let channelId: Snowflake
     public let guildId: Snowflake
     public let userId: Snowflake
@@ -221,7 +239,8 @@ public struct GatewayTypingStart: DiscordGatewayType {
 }
 
 // MARK: - Voice
-public struct GatewayVoiceServerUpdate: DiscordGatewayType {
+public struct GatewayVoiceServerUpdate: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let token: String
     public let guildId: Snowflake
     public let endpoint: String
@@ -233,7 +252,8 @@ public struct GatewayVoiceServerUpdate: DiscordGatewayType {
 }
 
 // MARK: - Webhooks
-public struct GatewayWebhooksUpdate: DiscordGatewayType {
+public struct GatewayWebhooksUpdate: DiscordGatewayType, DiscordHandled {
+public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let channelId: Snowflake
     

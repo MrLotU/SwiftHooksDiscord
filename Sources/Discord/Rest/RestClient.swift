@@ -1,6 +1,13 @@
 import NIO
 import Foundation
 
+public enum DiscordRestError: Error {
+    case InvalidPermissions
+    case MessageNeedsContent
+    case UnbannableInstance
+    case UnusableParent
+}
+
 /// Discord REST API Client
 ///
 /// Executes API requests to the Discord REST API

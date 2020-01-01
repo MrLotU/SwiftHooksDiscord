@@ -41,47 +41,47 @@ extension GuildMember {
         return nick ?? user.username
     }
     
-//    public func kick() {
-//        client.client.execute(.GuildMembersRemove(guild.id, id))
-//    }
-//    
-//    public func ban() throws {
-//        try guild.ban(self)
-//    }
-//    
-//    public func unban() throws {
-//        try guild.unban(self)
-//    }
+    public func kick() {
+        client.client.execute(.GuildMembersRemove(guild.id, id))
+    }
+    
+    public func ban() throws {
+        try guild.ban(self)
+    }
+    
+    public func unban() throws {
+        try guild.unban(self)
+    }
     
     public func setNickname(_ nick: String) {
-//        if self.client.state.me.id == self.user.id {
-//            self.client.client.execute(.GuildMembersModifyNickMe(id), ModifyNickMePayload(nick: nick))
-//        } else {
-//            let p = ModifyGuildMemberPayload.init(nick: nick, roles: nil, mute: nil, deaf: nil, channel_id: nil)
-//            self.client.client.execute(.GuildMembersModify(guild.id, id), p)
-//        }
+        if self.client.state.me.id == self.user.id {
+            self.client.client.execute(.GuildMembersModifyNickMe(id), ModifyNickMePayload(nick: nick))
+        } else {
+            let p = ModifyGuildMemberPayload.init(nick: nick, roles: nil, mute: nil, deaf: nil, channel_id: nil)
+            self.client.client.execute(.GuildMembersModify(guild.id, id), p)
+        }
     }
     
     public func clearNickname() {
         self.setNickname("")
     }
     
-//    public func modify(roles: [GuildRole]? = nil, isMuted: Bool? = nil, isDeafened: Bool? = nil, voiceChannel: Snowflake? = nil) {
-//        let p = ModifyGuildMemberPayload.init(nick: nil, roles: roles, mute: isMuted, deaf: isDeafened, channel_id: voiceChannel)
-//        self.client.client.execute(.GuildMembersModify(guild.id, id), p)
-//    }
-//
-//    public func addRole(_ role: GuildRole) {
-//        self.client.client.execute(.GuildMembersRoleAdd(guild.id, id, role.id))
-//    }
-//
-//    public func removeRole(_ role: GuildRole) {
-//        self.client.client.execute(.GuildMembersRoleRemove(guild.id, id, role.id))
-//    }
-//
-//    public var isOwner: Bool {
-//        return guild.ownerId == id
-//    }
+    public func modify(roles: [GuildRole]? = nil, isMuted: Bool? = nil, isDeafened: Bool? = nil, voiceChannel: Snowflake? = nil) {
+        let p = ModifyGuildMemberPayload.init(nick: nil, roles: roles, mute: isMuted, deaf: isDeafened, channel_id: voiceChannel)
+        self.client.client.execute(.GuildMembersModify(guild.id, id), p)
+    }
+
+    public func addRole(_ role: GuildRole) {
+        self.client.client.execute(.GuildMembersRoleAdd(guild.id, id, role.id))
+    }
+
+    public func removeRole(_ role: GuildRole) {
+        self.client.client.execute(.GuildMembersRoleRemove(guild.id, id, role.id))
+    }
+
+    public var isOwner: Bool {
+        return guild.ownerId == id
+    }
     
     public var id: Snowflake {
         return user.id
@@ -99,10 +99,10 @@ extension GuildMember {
 //        fatalError()
 //    }
     
-//    public var guild: Guild {
-//        // If we get a GuildMember without a guild, something went wrong bigtime
-//        // so the crash in here is "ok"
-//        guard let gId = self.guildId else { fatalError() }
-//        return self.client.state.guilds[gId]!
-//    }
+    public var guild: Guild {
+        // If we get a GuildMember without a guild, something went wrong bigtime
+        // so the crash in here is "ok"
+        guard let gId = self.guildId else { fatalError() }
+        return self.client.state.guilds[gId]!
+    }
 }

@@ -78,15 +78,15 @@ extension Channel {
         return self.type == .voice || self.isDm
     }
     
-//    public var guild: Guild? {
-//        guard let gId = guildId else { return nil }
-//        return client.state.guilds[gId]
-//    }
-//
-//    public var parent: Channel? {
-//        guard let pId = parentId else { return nil }
-//        return client.state.channels[pId]
-//    }
+    public var guild: Guild? {
+        guard let gId = guildId else { return nil }
+        return client.state.guilds[gId]
+    }
+
+    public var parent: Channel? {
+        guard let pId = parentId else { return nil }
+        return client.state.channels[pId]
+    }
 }
 
 extension Channel {
@@ -149,12 +149,12 @@ extension Channel {
 
     func delete() throws {
         // TODO: Perm checks
-//        guard self.isDm else { throw DiscordRestError.InvalidPermissions }
+        guard self.isDm else { throw DiscordRestError.InvalidPermissions }
         self.client.client.execute(.ChannelDelete(self.id))
     }
 
     func close() throws {
-//        guard self.isDm else { throw DiscordRestError.InvalidPermissions }
+        guard self.isDm else { throw DiscordRestError.InvalidPermissions }
         try self.delete()
     }
 
@@ -173,17 +173,17 @@ extension Channel {
     }
 
     func createTextChannel(named name: String, topic: String = "", rateLimitPerUser: Int? = nil, position: Int? = nil, permissionOverwrites: [PermissionOverwrite]? = nil, isNsfw: Bool? = nil) throws -> EventLoopFuture<Channel> {
-//        guard let guild = self.guild, self.type == .category else {
-//            throw DiscordRestError.InvalidPermissions
-//        }
+        guard let guild = self.guild, self.type == .category else {
+            throw DiscordRestError.InvalidPermissions
+        }
 
         throw CommandError.CommandRedeclaration
     }
 
     func createVoiceChannel(named name: String, topic: String = "", bitrate: Int? = nil, userLimit: Int? = nil, position: Int? = nil, overwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
-//        guard let guild = self.guild, self.type == .category else {
-//            throw DiscordRestError.InvalidPermissions
-//        }
+        guard let guild = self.guild, self.type == .category else {
+            throw DiscordRestError.InvalidPermissions
+        }
 
         throw CommandError.CommandRedeclaration
     }

@@ -19,7 +19,8 @@ public final class DiscordHook: Hook {
     internal let sharder: Sharder
     internal let lock: Lock
     public let eventLoopGroup: EventLoopGroup
-    public private(set) var client: DiscordRESTClient
+    public let client: DiscordRESTClient
+    public let state: State
     public internal(set) var discordListeners: [DiscordEvent: [EventClosure]]
     public internal(set) var hooks: SwiftHooks?
     
@@ -35,6 +36,7 @@ public final class DiscordHook: Hook {
         self.lock = Lock()
         self.discordListeners = [:]
         self.client = DiscordRESTClient(self.eventLoopGroup, self.token)
+        self.state = State()
         
         DiscordHook.decoder.userInfo[DiscordHook.decodingInfo] = self
     }

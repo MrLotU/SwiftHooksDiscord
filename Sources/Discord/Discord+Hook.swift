@@ -5,7 +5,8 @@ extension DiscordHook {
     public func boot(hooks: SwiftHooks? = nil) throws {
         SwiftHooks.logger.info("Booting \(self.self)")
         self.hooks = hooks
-        try Discord.registerTestables(to: self)
+        self.register(StatePlugin())
+//        try Discord.registerTestables(to: self)
         let amountOfShards: UInt8 = 1
         self.sharder.shardCount = amountOfShards
         for i in 0..<amountOfShards {
@@ -26,7 +27,7 @@ extension DiscordHook {
         self.lock.withLockVoid {
             var closures = self.discordListeners[event, default: []]
             closures.append { (data) in
-                guard let object = I.init(data) else {
+                guard let object = I.create(from: data) else {
                     SwiftHooks.logger.debug("Unable to extract \(I.self) from data.")
                     return
                 }
@@ -65,7 +66,7 @@ enum DiscordEventTranslator: EventTranslator {
     
     static func decodeConcreteType<T>(for event: GlobalEvent, with data: Data, as t: T.Type) -> T? {
         switch event {
-        case ._messageCreate: return Message(data) as? T
+        case ._messageCreate: return Message.create(from: data) as? T
         }
     }
 }

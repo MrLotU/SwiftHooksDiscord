@@ -5,14 +5,14 @@ protocol DiscordHandled {
     var client: DiscordClient! { get set }
 }
 public extension DiscordGatewayType {
-    init?(_ data: Data) {
+    static func create(from data: Data) -> Self? {
         do {
             let i = try DiscordHook.decoder.decode(GatewayData<Self>.self, from: data)
             if var d = i.d as? DiscordHandled {
                 d.client = DiscordHook.decoder.userInfo[DiscordHook.decodingInfo] as? DiscordClient
-                self = d as! Self
+                return d as? Self
             }
-            self = i.d
+            return i.d
         } catch {
             SwiftHooks.logger.debug("Decoding error: \(error), \(error.localizedDescription)")
             return nil
