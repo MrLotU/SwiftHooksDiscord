@@ -38,6 +38,12 @@ public struct User: DiscordGatewayType, DiscordHandled {
     }
 }
 
+extension User: Userable {
+    public var identifier: String? {
+        id.asString
+    }
+}
+
 extension User: CommandArgumentConvertible {
     public static var canConsume: Bool {
         return true

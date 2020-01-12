@@ -54,20 +54,38 @@ public struct Message: DiscordGatewayType, DiscordHandled {
     }
 }
 
+public extension Messageable {
+    var discord: Message? {
+        self as? Message
+    }
+}
+
 extension Message: Messageable {
     public var gChannel: Channelable {
         fatalError()
     }
     
+    private struct Webhook: Userable {
+        var identifier: String? {
+            "webhook"
+        }
+        
+        var mention: String {
+            "Unmentionable webhook"
+        }
+    }
+    
     public var gAuthor: Userable {
-        fatalError()
+        return self.author ?? Webhook()
     }
     
     public func reply(_ content: String) {
         let _: EventLoopFuture<Message> = self.reply(content)
     }
     
-    public func edit(_ content: String) { }
+    public func edit(_ content: String) {
+        let _: EventLoopFuture<Message>? = try? self.edit(content)
+    }
     
     public func delete() { }
 }
@@ -102,13 +120,21 @@ extension Message {
 
     @discardableResult
     public func reply(_ content: String, isTts: Bool = false, embed: Embed? = nil) -> EventLoopFuture<Message> {
-        return self.channel.send(content, isTts: isTts, embed: embed)
+        return self.channel.send(content, isTts: isTts, embed: embed).map { (msg: Message) in
+            var m = msg
+            m.client = self.client
+            return m
+        }
     }
 
     public func edit(_ content: String, embed: Embed? = nil) throws -> EventLoopFuture<Message> {
         let body = MessageEditPayload(content: content, embed: embed)
 
-        return self.client.client.execute(.ChannelMessagesModify(self.channelId, self), body).map { $0 as Message }
+        return self.client.client.execute(.ChannelMessagesModify(self.channelId, self), body).map { (msg: Message) in
+            var m = msg
+            m.client = self.client
+            return m
+        }
     }
 
     public func delete() -> EventLoopFuture<Message> {
