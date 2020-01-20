@@ -65,18 +65,18 @@ extension Message: Messageable {
         fatalError()
     }
     
-    private struct Webhook: Userable {
-        var identifier: String? {
-            "webhook"
-        }
-        
-        var mention: String {
-            "Unmentionable webhook"
-        }
-    }
+//    private struct Webhook: Userable {
+//        var identifier: String? {
+//            "webhook"
+//        }
+//        
+//        var mention: String {
+//            "Unmentionable webhook"
+//        }
+//    }
     
     public var gAuthor: Userable {
-        return self.author ?? Webhook()
+        fatalError()//return self.author ?? Webhook()
     }
     
     public func reply(_ content: String) {
