@@ -1,4 +1,4 @@
-extension DiscordGatewayType where Self: DiscordHandled {
+fileprivate extension DiscordGatewayType where Self: DiscordHandled {
     var state: State {
         self.client.state
     }
@@ -6,14 +6,14 @@ extension DiscordGatewayType where Self: DiscordHandled {
 
 class StatePlugin: Plugin {
     @Listener(Discord.ready)
-	var onReady = { ready in
+	var onReady = { _, ready in
         var user = ready.user
         user.client = ready.client
         ready.state.me = user
     }
 
     @Listener(Discord.guildCreate)
-	var onGuildCreate = { guild in
+	var onGuildCreate = { _, guild in
         guild.state.guilds[guild.id] = guild
         guild.channels.forEach {
             guild.state.channels[$0.id] = $0
@@ -26,10 +26,10 @@ class StatePlugin: Plugin {
     }
 
     @Listener(Discord.guildUpdate)
-	var onGuildUpdate = { guildUpdate in }
+	var onGuildUpdate = { _, guildUpdate in }
 
     @Listener(Discord.guildDelete)
-    var onGuildDelete = { event in
+    var onGuildDelete = { _, event in
         guard let guild = event.state.guilds[event.id] else { return }
         for c in guild.channels {
             event.state.channels[c.id] = nil
@@ -38,7 +38,7 @@ class StatePlugin: Plugin {
     }
 
     @Listener(Discord.channelCreate)
-	var onChannelCreate = { channel in
+	var onChannelCreate = { _, channel in
         channel.state.channels[channel.id] = channel
         if channel.isGuild, let guildId = channel.guildId, let guild = channel.state.guilds[guildId] {
             guild.channels[channel.id] = channel
@@ -48,10 +48,10 @@ class StatePlugin: Plugin {
     }
 
     @Listener(Discord.channelUpdate)
-	var onChannelUpdate = { channelUpdate in }
+	var onChannelUpdate = { _, channelUpdate in }
 
     @Listener(Discord.channelDelete)
-	var onChannelDelete = { channel in
+	var onChannelDelete = { _, channel in
         channel.state.channels[channel.id] = nil
         if channel.isGuild, let guildId = channel.guildId, let guild = channel.state.guilds[guildId] {
             guild.channels[channel.id] = nil
@@ -61,7 +61,7 @@ class StatePlugin: Plugin {
     }
 
     @Listener(Discord.guildMemberAdd)
-	var onGuildMemberAdd = { member in
+	var onGuildMemberAdd = { _, member in
         member.state.users[member.user.id] = member.user
         
         if let id = member.guildId, let guild = member.state.guilds[id] {
@@ -70,17 +70,17 @@ class StatePlugin: Plugin {
     }
 
     @Listener(Discord.guildMemberUpdate)
-	var onGuildMemberUpdate = { guildMemberUpdate in }
+	var onGuildMemberUpdate = { _, guildMemberUpdate in }
 
     @Listener(Discord.guildMemberRemove)
-	var onGuildMemberRemove = { member in
+	var onGuildMemberRemove = { _, member in
         if let guild = member.state.guilds[member.guildId] {
             guild.members[member.user.id] = nil
         }
     }
 
     @Listener(Discord.guildMembersChunk)
-	var onGuildMembersChunk = { chunk in
+	var onGuildMembersChunk = { _, chunk in
         guard let guild = chunk.state.guilds[chunk.guildId] else { return }
         for var mem in chunk.members {
             mem.guildId = guild.id
@@ -91,26 +91,26 @@ class StatePlugin: Plugin {
     }
 
     @Listener(Discord.guildRoleCreate)
-	var onGuildRoleCreate = { event in
+	var onGuildRoleCreate = { _, event in
         guard let guild = event.state.guilds[event.guildId] else { return }
         guild.roles[event.role.id] = event.role
     }
 
     @Listener(Discord.guildRoleUpdate)
-	var onGuildRoleUpdate = { guildRoleUpdate in }
+	var onGuildRoleUpdate = { _, guildRoleUpdate in }
 
     @Listener(Discord.guildRoleDelete)
-	var onGuildRoleDelete = { event in
+	var onGuildRoleDelete = { _, event in
         guard let guild = event.state.guilds[event.guildId], guild.roles.sContains(event.roleId) else { return }
         guild.roles[event.roleId] = nil
     }
 
     @Listener(Discord.guildEmojisUpdate)
-	var onGuildEmojisUpdate = { event in
+	var onGuildEmojisUpdate = { _, event in
         guard let guild = event.state.guilds[event.guildId] else { return }
         guild.emojis = event.emojis
     }
 
     @Listener(Discord.presenceUpdate)
-	var onPrecenseUpdate = { presenceUpdate in }
+	var onPrecenseUpdate = { _, presenceUpdate in }
 }

@@ -14,7 +14,6 @@ public final class DiscordHook: Hook {
     public typealias Options = DiscordHookOptions
     
     public static let id: HookID = .discord
-    public let translator: EventTranslator.Type = DiscordEventTranslator.self
     internal let token: String
     internal let sharder: Sharder
     internal let lock: Lock

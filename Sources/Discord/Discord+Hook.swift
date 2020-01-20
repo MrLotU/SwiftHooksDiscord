@@ -6,7 +6,6 @@ extension DiscordHook {
         SwiftHooks.logger.info("Booting \(self.self)")
         self.hooks = hooks
         self.register(StatePlugin())
-//        try Discord.registerTestables(to: self)
         let amountOfShards: UInt8 = 1
         self.sharder.shardCount = amountOfShards
         for i in 0..<amountOfShards {
@@ -22,16 +21,20 @@ extension DiscordHook {
         }
     }
     
-    public func listen<T, I>(for event: T, handler: @escaping EventHandler<I>) where T : _Event, I == T.ContentType {
-        guard let event = event as? _DiscordEvent<DiscordEvent, I> else { return }
+    public func listen<T, I, D>(for event: T, handler: @escaping EventHandler<D, I>) where T : _Event, I == T.ContentType, T.D == D {
+        guard let event = event as? _DiscordEvent<I> else { return }
         self.lock.withLockVoid {
             var closures = self.discordListeners[event, default: []]
             closures.append { (data) in
-                guard let object = I.create(from: data) else {
+                guard let object = I.create(from: data, on: self) else {
                     SwiftHooks.logger.debug("Unable to extract \(I.self) from data.")
                     return
                 }
-                try handler(object)
+                guard let d = D.init(self) else {
+                    SwiftHooks.logger.debug("Unable to wrap \(I.self) in \(D.self) dispatch.")
+                    return
+                }
+                try handler(d, object)
             }
             self.discordListeners[event] = closures
         }
@@ -53,10 +56,8 @@ extension DiscordHook {
             })
         }
     }
-}
 
-enum DiscordEventTranslator: EventTranslator {
-    static func translate<E>(_ event: E) -> GlobalEvent? where E : EventType {
+    public func translate<E>(_ event: E) -> GlobalEvent? where E : EventType {
         guard let e = event as? DiscordEvent else { return nil }
         switch e {
         case ._messageCreate: return ._messageCreate
@@ -64,9 +65,9 @@ enum DiscordEventTranslator: EventTranslator {
         }
     }
     
-    static func decodeConcreteType<T>(for event: GlobalEvent, with data: Data, as t: T.Type) -> T? {
+    public func decodeConcreteType<T>(for event: GlobalEvent, with data: Data, as t: T.Type) -> T? {
         switch event {
-        case ._messageCreate: return Message.create(from: data) as? T
+        case ._messageCreate: return Message.create(from: data, on: self) as? T
         }
     }
 }

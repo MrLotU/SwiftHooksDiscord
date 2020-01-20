@@ -5,11 +5,11 @@ protocol DiscordHandled {
     var client: DiscordClient! { get set }
 }
 public extension DiscordGatewayType {
-    static func create(from data: Data) -> Self? {
+    static func create(from data: Data, on h: _Hook) -> Self? {
         do {
             let i = try DiscordHook.decoder.decode(GatewayData<Self>.self, from: data)
-            if var d = i.d as? DiscordHandled {
-                d.client = DiscordHook.decoder.userInfo[DiscordHook.decodingInfo] as? DiscordClient
+            if var d = i.d as? DiscordHandled, let h = h as? DiscordHook {
+                d.client = h
                 return d as? Self
             }
             return i.d

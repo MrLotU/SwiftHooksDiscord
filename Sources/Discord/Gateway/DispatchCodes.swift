@@ -1,6 +1,20 @@
 import Foundation
+import protocol NIO.EventLoop
 
-public struct _DiscordEvent<E: EventType, ContentType: PayloadType>: _Event {
+public struct DiscordDispatch: EventDispatch {
+    public let eventLoop: EventLoop
+    public let client: DiscordClient
+    
+    public init?(_ h: _Hook) {
+        guard let h = h as? DiscordHook else { return nil }
+        self.eventLoop = h.eventLoop
+        self.client = h
+    }
+}
+
+public struct _DiscordEvent<ContentType: PayloadType>: _Event {
+    public typealias E = DiscordEvent
+    public typealias D = DiscordDispatch
     public let event: E
     public init(_ e: E, _ t: ContentType.Type) {
         self.event = e
@@ -44,54 +58,41 @@ public enum DiscordEvent: String, Codable, EventType {
     case _voiceServerUpdate = "VOICE_SERVER_UPDATE"
     case _webhooksUpdate = "WEBHOOKS_UPDATE"
 
-    public static let hello = _DiscordEvent(DiscordEvent._hello, GatewayHello.self)
-    public static let ready = _DiscordEvent(DiscordEvent._ready, GatewayReady.self)
-    public static let resumed = _DiscordEvent(DiscordEvent._resumed, GatewayResumed.self)
-    public static let invalidSession = _DiscordEvent(DiscordEvent._invalidSession, Empty.self)
-    public static let channelCreate = _DiscordEvent(DiscordEvent._channelCreate, Channel.self)
-    public static let channelUpdate = _DiscordEvent(DiscordEvent._channelUpdate, Channel.self)
-    public static let channelDelete = _DiscordEvent(DiscordEvent._channelDelete, Channel.self)
-    public static let channelPinsUpdate = _DiscordEvent(DiscordEvent._channelPinsUpdate, GatewayChannelPinsUpdate.self)
-    public static let guildCreate = _DiscordEvent(DiscordEvent._guildCreate, Guild.self)
-    public static let guildUpdate = _DiscordEvent(DiscordEvent._guildUpdate, Guild.self)
-    public static let guildDelete = _DiscordEvent(DiscordEvent._guildDelete, UnavailableGuild.self)
-    public static let guildBanAdd = _DiscordEvent(DiscordEvent._guildBanAdd, GatewayGuildBanEvent.self)
-    public static let guildBanRemove = _DiscordEvent(DiscordEvent._guildBanRemove, GatewayGuildBanEvent.self)
-    public static let guildEmojisUpdate = _DiscordEvent(DiscordEvent._guildEmojisUpdate, GatewayGuildEmojisUpdate.self)
-    public static let guildIntegrationsUpdate = _DiscordEvent(DiscordEvent._guildIntegrationsUpdate, GatewayGuildIntegrationsUpdate.self)
-    public static let guildMemberAdd = _DiscordEvent(DiscordEvent._guildMemberAdd, GuildMember.self)
-    public static let guildMemberRemove = _DiscordEvent(DiscordEvent._guildMemberRemove, GatewayGuildMemberRemove.self)
-    public static let guildMemberUpdate = _DiscordEvent(DiscordEvent._guildMemberUpdate, GatewayGuildMemberUpdate.self)
-    public static let guildMembersChunk = _DiscordEvent(DiscordEvent._guildMembersChunk, GatewayGuildMembersChunk.self)
-    public static let guildRoleCreate = _DiscordEvent(DiscordEvent._guildRoleCreate, GatewayGuildRoleEvent.self)
-    public static let guildRoleUpdate = _DiscordEvent(DiscordEvent._guildRoleUpdate, GatewayGuildRoleEvent.self)
-    public static let guildRoleDelete = _DiscordEvent(DiscordEvent._guildRoleDelete, GatewayGuildRoleDelete.self)
-    public static let messageCreate = _DiscordEvent(DiscordEvent._messageCreate, Message.self)
-    public static let messageUpdate = _DiscordEvent(DiscordEvent._messageUpdate, Message.self)
-    public static let messageDelete = _DiscordEvent(DiscordEvent._messageDelete, GatewayMessageDelete.self)
-    public static let messageDeleteBulk = _DiscordEvent(DiscordEvent._messageDeleteBulk, GatewayMessageDeleteBulk.self)
-    public static let messageReactionAdd = _DiscordEvent(DiscordEvent._messageReactionAdd, GatewayMessageReactionEvent.self)
-    public static let messageReactionRemove = _DiscordEvent(DiscordEvent._messageReactionRemove, GatewayMessageReactionEvent.self)
-    public static let messageReactionRemoveAll = _DiscordEvent(DiscordEvent._messageReactionRemoveAll, GatewayMessageReactionRemoveAll.self)
-    public static let presenceUpdate = _DiscordEvent(DiscordEvent._presenceUpdate, GatewayPresenceUpdate.self)
-    public static let typingStart = _DiscordEvent(DiscordEvent._typingStart, GatewayTypingStart.self)
-    public static let userUpdate = _DiscordEvent(DiscordEvent._userUpdate, User.self)
-    public static let voiceStateUpdate = _DiscordEvent(DiscordEvent._voiceStateUpdate, Empty.self)
-    public static let voiceServerUpdate = _DiscordEvent(DiscordEvent._voiceServerUpdate, GatewayVoiceServerUpdate.self)
-    public static let webhooksUpdate = _DiscordEvent(DiscordEvent._webhooksUpdate, GatewayWebhooksUpdate.self)
-    
-    internal static func registerTestables(to hook: DiscordHook) throws {
-        let thing = { (x: Any) in print(type(of: x)) }
-        hook.listen(for: Discord.hello, handler: thing)
-        hook.listen(for: Discord.ready, handler: thing)
-        hook.listen(for: Discord.guildCreate, handler: thing)
-        hook.listen(for: Discord.messageCreate, handler: thing)
-        hook.listen(for: Discord.messageUpdate, handler: thing)
-        hook.listen(for: Discord.messageDelete, handler: thing)
-        hook.listen(for: Discord.messageReactionAdd, handler: thing)
-        hook.listen(for: Discord.messageReactionRemove, handler: thing)
-        hook.listen(for: Discord.typingStart, handler: thing)
-    }
+    public static let hello = _DiscordEvent(._hello, GatewayHello.self)
+    public static let ready = _DiscordEvent(._ready, GatewayReady.self)
+    public static let resumed = _DiscordEvent(._resumed, GatewayResumed.self)
+    public static let invalidSession = _DiscordEvent(._invalidSession, Empty.self)
+    public static let channelCreate = _DiscordEvent(._channelCreate, Channel.self)
+    public static let channelUpdate = _DiscordEvent(._channelUpdate, Channel.self)
+    public static let channelDelete = _DiscordEvent(._channelDelete, Channel.self)
+    public static let channelPinsUpdate = _DiscordEvent(._channelPinsUpdate, GatewayChannelPinsUpdate.self)
+    public static let guildCreate = _DiscordEvent(._guildCreate, Guild.self)
+    public static let guildUpdate = _DiscordEvent(._guildUpdate, Guild.self)
+    public static let guildDelete = _DiscordEvent(._guildDelete, UnavailableGuild.self)
+    public static let guildBanAdd = _DiscordEvent(._guildBanAdd, GatewayGuildBanEvent.self)
+    public static let guildBanRemove = _DiscordEvent(._guildBanRemove, GatewayGuildBanEvent.self)
+    public static let guildEmojisUpdate = _DiscordEvent(._guildEmojisUpdate, GatewayGuildEmojisUpdate.self)
+    public static let guildIntegrationsUpdate = _DiscordEvent(._guildIntegrationsUpdate, GatewayGuildIntegrationsUpdate.self)
+    public static let guildMemberAdd = _DiscordEvent(._guildMemberAdd, GuildMember.self)
+    public static let guildMemberRemove = _DiscordEvent(._guildMemberRemove, GatewayGuildMemberRemove.self)
+    public static let guildMemberUpdate = _DiscordEvent(._guildMemberUpdate, GatewayGuildMemberUpdate.self)
+    public static let guildMembersChunk = _DiscordEvent(._guildMembersChunk, GatewayGuildMembersChunk.self)
+    public static let guildRoleCreate = _DiscordEvent(._guildRoleCreate, GatewayGuildRoleEvent.self)
+    public static let guildRoleUpdate = _DiscordEvent(._guildRoleUpdate, GatewayGuildRoleEvent.self)
+    public static let guildRoleDelete = _DiscordEvent(._guildRoleDelete, GatewayGuildRoleDelete.self)
+    public static let messageCreate = _DiscordEvent(._messageCreate, Message.self)
+    public static let messageUpdate = _DiscordEvent(._messageUpdate, Message.self)
+    public static let messageDelete = _DiscordEvent(._messageDelete, GatewayMessageDelete.self)
+    public static let messageDeleteBulk = _DiscordEvent(._messageDeleteBulk, GatewayMessageDeleteBulk.self)
+    public static let messageReactionAdd = _DiscordEvent(._messageReactionAdd, GatewayMessageReactionEvent.self)
+    public static let messageReactionRemove = _DiscordEvent(._messageReactionRemove, GatewayMessageReactionEvent.self)
+    public static let messageReactionRemoveAll = _DiscordEvent(._messageReactionRemoveAll, GatewayMessageReactionRemoveAll.self)
+    public static let presenceUpdate = _DiscordEvent(._presenceUpdate, GatewayPresenceUpdate.self)
+    public static let typingStart = _DiscordEvent(._typingStart, GatewayTypingStart.self)
+    public static let userUpdate = _DiscordEvent(._userUpdate, User.self)
+    public static let voiceStateUpdate = _DiscordEvent(._voiceStateUpdate, Empty.self)
+    public static let voiceServerUpdate = _DiscordEvent(._voiceServerUpdate, GatewayVoiceServerUpdate.self)
+    public static let webhooksUpdate = _DiscordEvent(._webhooksUpdate, GatewayWebhooksUpdate.self)
 }
 
 public struct Empty: PayloadType { }
