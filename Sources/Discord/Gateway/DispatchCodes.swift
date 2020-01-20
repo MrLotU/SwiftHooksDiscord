@@ -61,7 +61,7 @@ public enum DiscordEvent: String, Codable, EventType {
     public static let hello = _DiscordEvent(._hello, GatewayHello.self)
     public static let ready = _DiscordEvent(._ready, GatewayReady.self)
     public static let resumed = _DiscordEvent(._resumed, GatewayResumed.self)
-//    public static let invalidSession = _DiscordEvent(._invalidSession, Empty.self)
+    public static let invalidSession = _DiscordEvent(._invalidSession, Empty.self)
     public static let channelCreate = _DiscordEvent(._channelCreate, Channel.self)
     public static let channelUpdate = _DiscordEvent(._channelUpdate, Channel.self)
     public static let channelDelete = _DiscordEvent(._channelDelete, Channel.self)
@@ -90,9 +90,9 @@ public enum DiscordEvent: String, Codable, EventType {
     public static let presenceUpdate = _DiscordEvent(._presenceUpdate, GatewayPresenceUpdate.self)
     public static let typingStart = _DiscordEvent(._typingStart, GatewayTypingStart.self)
     public static let userUpdate = _DiscordEvent(._userUpdate, User.self)
-//    public static let voiceStateUpdate = _DiscordEvent(._voiceStateUpdate, Empty.self)
+    public static let voiceStateUpdate = _DiscordEvent(._voiceStateUpdate, Empty.self)
     public static let voiceServerUpdate = _DiscordEvent(._voiceServerUpdate, GatewayVoiceServerUpdate.self)
     public static let webhooksUpdate = _DiscordEvent(._webhooksUpdate, GatewayWebhooksUpdate.self)
 }
 
-public struct Empty: Decodable/*: PayloadType*/ { }
+public struct Empty: PayloadType { }

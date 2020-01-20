@@ -5,7 +5,7 @@ extension DiscordHook {
     public func boot(hooks: SwiftHooks? = nil) throws {
         SwiftHooks.logger.info("Booting \(self.self)")
         self.hooks = hooks
-//        self.register(StatePlugin())
+        self.register(StatePlugin())
         let amountOfShards: UInt8 = 1
         self.sharder.shardCount = amountOfShards
         for i in 0..<amountOfShards {
