@@ -1,6 +1,12 @@
 import Foundation
 import protocol NIO.EventLoop
 
+extension CommandEvent {
+    public var discord: DiscordClient? {
+        return hook as? DiscordClient
+    }
+}
+
 public struct DiscordDispatch: EventDispatch {
     public let eventLoop: EventLoop
     public let client: DiscordClient
@@ -57,7 +63,9 @@ public enum DiscordEvent: String, Codable, EventType {
     case _voiceStateUpdate = "VOICE_STATE_UPDATE"
     case _voiceServerUpdate = "VOICE_SERVER_UPDATE"
     case _webhooksUpdate = "WEBHOOKS_UPDATE"
+}
 
+public enum Discord {
     public static let hello = _DiscordEvent(._hello, GatewayHello.self)
     public static let ready = _DiscordEvent(._ready, GatewayReady.self)
     public static let resumed = _DiscordEvent(._resumed, GatewayResumed.self)

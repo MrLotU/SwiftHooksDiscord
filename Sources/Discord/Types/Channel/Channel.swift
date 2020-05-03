@@ -41,6 +41,12 @@ public struct Channel: DiscordGatewayType, DiscordHandled {
     }
 }
 
+extension Channel: Channelable {
+    public func send(_ msg: String) -> EventLoopFuture<Messageable> {
+        self.send(msg, isTts: false).map { $0 as Messageable }
+    }
+}
+
 extension Channel: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         return "\(self.name ?? "\(self.id)")"
@@ -95,8 +101,8 @@ extension Channel {
     }
 
     @discardableResult
-    func send(_ content: String, isTts: Bool = false, embed: Embed? = nil) -> EventLoopFuture<Message> {
-        let body = MessageCreatePayload(content: content, nonce: nil, isTts: isTts, embed: embed)
+    func send(_ msg: String, isTts: Bool = false, embed: Embed? = nil) -> EventLoopFuture<Message> {
+        let body = MessageCreatePayload(content: msg, nonce: nil, isTts: isTts, embed: embed)
 
         return self.client.client.execute(.ChannelMessagesCreate(self), body).map { $0 as Message }
     }
@@ -119,7 +125,7 @@ extension Channel {
     }
 
 //    var webhooks: EventLoopFuture<[Webhook]> {
-//        return self.client.client.execute(.ChannelsWebhooksGet(self)).map { $0 as [Webhook] }
+//        return self.client.client.execute(.ChannelsWebhooksGet(self))
 //    }
 //
 //    func createWebhook(_ payload: CreateWebhookPayload) throws -> EventLoopFuture<Webhook> {
@@ -148,8 +154,7 @@ extension Channel {
     }
 
     func delete() throws {
-        // TODO: Perm checks
-        guard self.isDm else { throw DiscordRestError.InvalidPermissions }
+        guard self.isDm || self.guild?.permissions?.contains(.manageChannels) ?? false else { throw DiscordRestError.InvalidPermissions }
         self.client.client.execute(.ChannelDelete(self.id))
     }
 
@@ -172,20 +177,18 @@ extension Channel {
         return self.client.client.execute(.ChannelModify(self), body).map { $0 as Channel }
     }
 
-    func createTextChannel(named name: String, topic: String = "", rateLimitPerUser: Int? = nil, position: Int? = nil, permissionOverwrites: [PermissionOverwrite]? = nil, isNsfw: Bool? = nil) throws -> EventLoopFuture<Channel> {
-        guard let guild = self.guild, self.type == .category else {
-            throw DiscordRestError.InvalidPermissions
+    func createTextChannel(named name: String, at pos: Int? = nil, topic: String = "", rateLimitPerUser: Int? = nil, overwrites: [PermissionOverwrite]? = nil, isNsfw: Bool? = nil) throws -> EventLoopFuture<Channel> {
+        guard let guild = self.guild else {
+            throw DiscordRestError.NotAGuild
         }
-
-        throw CommandError.CommandRedeclaration
+        return try guild.createTextChannel(named: name, at: pos, parent: self, topic: topic, isNsfw: isNsfw, rateLimitPerUser: rateLimitPerUser, permissionOverwrites: overwrites)
     }
 
-    func createVoiceChannel(named name: String, topic: String = "", bitrate: Int? = nil, userLimit: Int? = nil, position: Int? = nil, overwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
-        guard let guild = self.guild, self.type == .category else {
-            throw DiscordRestError.InvalidPermissions
+    func createVoiceChannel(named name: String, at pos: Int?, bitrate: Int? = nil, userLimit: Int? = nil, overwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
+        guard let guild = self.guild else {
+            throw DiscordRestError.NotAGuild
         }
-
-        throw CommandError.CommandRedeclaration
+        return try guild.createVoiceChannel(named: name, at: pos, parent: self, bitrate: bitrate, userLimit: userLimit, overwrites: overwrites)
     }
 }
 

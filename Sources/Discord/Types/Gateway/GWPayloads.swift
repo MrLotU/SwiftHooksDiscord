@@ -2,7 +2,7 @@ internal struct IdentifyPayload: Codable {
     public let token: String
     public let properties: Properties
     public let large_treshold: Int?
-    public let shard: [UInt8]?
+    public let shard: [Int]?
     public let presence: GatewayStatusUpdate?
     public let guild_subscriptions: Bool?
     
@@ -10,7 +10,7 @@ internal struct IdentifyPayload: Codable {
         token: String,
         properties: Properties,
         largeTreshold: Int? = nil,
-        shard: [UInt8]? = nil,
+        shard: [Int]? = nil,
         presence: GatewayStatusUpdate? = nil,
         guildSubscriptions: Bool? = nil
     ) {

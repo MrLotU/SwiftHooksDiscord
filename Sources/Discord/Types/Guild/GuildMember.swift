@@ -94,10 +94,9 @@ extension GuildMember {
         return user.mention
     }
     
-//    public var permissions: Permission {
-//        // TODO: Imp
-//        fatalError()
-//    }
+    public var permissions: Permissions {
+        self.guild.getPermissions(for: self)
+    }
     
     public var guild: Guild {
         // If we get a GuildMember without a guild, something went wrong bigtime

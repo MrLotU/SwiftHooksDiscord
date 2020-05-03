@@ -6,35 +6,38 @@ public enum UserStatus: String, Codable {
     case online, dnd, idle, invisible, offline
 }
 
-public struct User: DiscordGatewayType, DiscordHandled {
-    public internal(set) var client: DiscordClient!
-    
-    public let id: Snowflake
-    public let username: String
-    public let discriminator: String
-    public let avatar: String?
-    public let isBot: Bool?
-    public let isSystem: Bool?
-    public let locale: String?
-    public let mfaEnabled: Bool?
-    public let isVerified: Bool?
-    public let email: String?
-    public let flags: Int?
-    public let premiumType: PremiumType?
-    
-    enum CodingKeys: String, CodingKey {
-        case id
-        case username
-        case discriminator
-        case avatar
-        case isBot = "bot"
-        case isSystem = "system"
-        case locale
-        case mfaEnabled = "mfa_enabled"
-        case isVerified = "verified"
-        case email
-        case flags
-        case premiumType = "premium_type"
+public typealias User = Discord.User
+public extension Discord {
+    struct User: DiscordGatewayType, DiscordHandled {
+        public internal(set) var client: DiscordClient!
+        
+        public let id: Snowflake
+        public let username: String
+        public let discriminator: String
+        public let avatar: String?
+        public let isBot: Bool?
+        public let isSystem: Bool?
+        public let locale: String?
+        public let mfaEnabled: Bool?
+        public let isVerified: Bool?
+        public let email: String?
+        public let flags: Int?
+        public let premiumType: PremiumType?
+        
+        enum CodingKeys: String, CodingKey {
+            case id
+            case username
+            case discriminator
+            case avatar
+            case isBot = "bot"
+            case isSystem = "system"
+            case locale
+            case mfaEnabled = "mfa_enabled"
+            case isVerified = "verified"
+            case email
+            case flags
+            case premiumType = "premium_type"
+        }
     }
 }
 
@@ -45,21 +48,17 @@ extension User: Userable {
 }
 
 extension User: CommandArgumentConvertible {
-    public static var canConsume: Bool {
-        return true
-    }
-    
     public static func resolveArgument(_ argument: String, on event: CommandEvent) throws -> User {
-//        if let user = event.message.mentions.first(where: { $0.mention == argument.replacingOccurrences(of: "!", with: "") }) {
-//            return user
-//        }
-//        guard let snowflake = Snowflake(argument) else {
+        if let user = event.message.discord?.mentions.first(where: { $0.mention == argument.replacingOccurrences(of: "!", with: "") }) {
+            return user
+        }
+        guard let snowflake = Snowflake(argument) else {
             throw CommandError.UnableToConvertArgument(argument, "\(self.self)")
-//        }
-//        guard let user = event.handler.state.users[snowflake] else {
-//            throw CommandError.ArgumentNotFound(argument)
-//        }
-//        return user
+        }
+        guard let user = event.discord?.state.users[snowflake] else {
+            throw CommandError.ArgumentNotFound(argument)
+        }
+        return user
     }
 }
 

@@ -4,13 +4,11 @@ import WebSocketKit
 extension Shard {
     func connect(to socketUrl: String) {
         guard let url = URL(string: socketUrl) else {
-            print("Bad URL")
             return
         }
         self.socketUrl = socketUrl
         let socket = WebSocket.connect(to: url, configuration: .init(tlsConfiguration: .forClient(), maxFrameSize: 1 << 18), on: self.elg.next()) { [weak self] ws in
             guard let strongSelf = self else {
-                print("No strong self")
                 return
             }
 
@@ -31,15 +29,14 @@ extension Shard {
                 strongSelf.handle(data)
             }
             
-            SwiftHooks.logger.info("Gateway connected for shard \(strongSelf.id)")
+            self?.logger.info("Gateway connected for shard \(strongSelf.id)")
         }
         
         DispatchQueue.main.async {
             do {
                 try socket.wait()
-                print("Sock ready")
-                self.socket?.onClose.whenComplete { res in
-                    print("CLOSE: \(res)")
+                self.socket?.onClose.whenComplete { [weak self] res in
+                    self?.logger.info("Gateway connection closed for shard \(self?.id ?? 0)")
                 }
             } catch {
                 // ERROR

@@ -134,12 +134,12 @@ extension Guild {
         return members[ownerId]! // If this is nil, the universe is broken
     }
     
-    public func get_permissions(for member: GuildMember) -> Permissions {
+    public func getPermissions(for member: GuildMember) -> Permissions {
         if member.id == ownerId {
             return .administrator
         }
-        // TODO: Imp
-        fatalError()
+        let roles = self.roles.filter { member.roles.contains($0.id) }
+        return roles.reduce(into: self.roles[self.id]?.permissions ?? []) { $0.formUnion($1.permissions) }
     }
     
     public func createRole(named name: String, permissions: Permissions? = nil, color: Int = 1, isHoisted: Bool = false, isMentionable: Bool = false) -> EventLoopFuture<GuildRole> {
@@ -152,6 +152,7 @@ extension Guild {
     }
     
     public func requestGuildMembers() {
+//        self.client.
         // TODO: Imp
     }
     
@@ -180,19 +181,19 @@ extension Guild {
         return client.client.execute(.GuildChannelsCreate(id), p)
     }
     
-    public func createTextChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, topic: String? = nil, isNsfw: Bool? = nil) throws -> EventLoopFuture<Channel> {
+    public func createTextChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, topic: String? = nil, isNsfw: Bool? = nil, rateLimitPerUser: Int? = nil, permissionOverwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
         guard parent == nil || parent?.type == .category else {
             throw DiscordRestError.UnusableParent
         }
-        let p = CreatChannelPayload.init(name: name, type: .text, topic: topic, bitrate: nil, userLimit: nil, rateLimitPerUser: nil, position: pos, permissionOverwrites: nil, parentId: parent?.id, nsfw: isNsfw)
+        let p = CreatChannelPayload.init(name: name, type: .text, topic: topic, bitrate: nil, userLimit: nil, rateLimitPerUser: rateLimitPerUser, position: pos, permissionOverwrites: permissionOverwrites, parentId: parent?.id, nsfw: isNsfw)
         return client.client.execute(.GuildChannelsCreate(id), p)
     }
     
-    public func createVoiceChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, bitrate: Int? = nil, userLimit: Int? = nil, rateLimitPerUser: Int? = nil) throws -> EventLoopFuture<Channel> {
+    public func createVoiceChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, bitrate: Int? = nil, userLimit: Int? = nil, overwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
         guard parent == nil || parent?.type == .category else {
             throw DiscordRestError.UnusableParent
         }
-        let p = CreatChannelPayload.init(name: name, type: .voice, topic: nil, bitrate: bitrate, userLimit: userLimit, rateLimitPerUser: rateLimitPerUser, position: pos, permissionOverwrites: nil, parentId: parent?.id, nsfw: nil)
+        let p = CreatChannelPayload.init(name: name, type: .voice, topic: nil, bitrate: bitrate, userLimit: userLimit, rateLimitPerUser: nil, position: pos, permissionOverwrites: overwrites, parentId: parent?.id, nsfw: nil)
         return client.client.execute(.GuildChannelsCreate(id), p)
     }
     

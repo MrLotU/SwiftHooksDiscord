@@ -62,7 +62,7 @@ public extension Messageable {
 
 extension Message: Messageable {
     public var gChannel: Channelable {
-        fatalError()
+        self.channel
     }
     
     private struct Webhook: Userable {
@@ -75,18 +75,39 @@ extension Message: Messageable {
         }
     }
     
+    private func toGlobal(_ msg: Self) -> Messageable {
+        return msg as Messageable
+    }
+    
+    @discardableResult
+    public func reply(_ content: String) -> EventLoopFuture<Messageable> {
+        self.reply(content).map(toGlobal)
+    }
+    
+    @discardableResult
+    public func edit(_ content: String) -> EventLoopFuture<Messageable> {
+        self.edit(content).map(toGlobal)
+    }
+    
     public var gAuthor: Userable {
         return self.author ?? Webhook()
     }
     
-    public func reply(_ content: String) {
-        let _: EventLoopFuture<Message> = self.reply(content)
+    public func error(_ error: Error, on command: _ExecutableCommand) {
+        let f = self.client.options.highlightFormatting
+        let help = f + command.help + f
+        switch error {
+        case CommandError.ArgumentNotFound(let arg):
+            self.reply("Missing argument: \(f+arg+f)\nUsage: \(help)")
+        case CommandError.InvalidPermissions:
+           self.reply("Invalid permissions!\nUsage: \(help)")
+        case CommandError.UnableToConvertArgument(let arg, let type):
+           self.reply("Error converting \(f+arg+f) to \(f+type+f)\nUsage: \(help)")
+        default:
+           self.reply("Something went wrong!\nUsage: \(help)")
+       }
     }
-    
-    public func edit(_ content: String) {
-        let _: EventLoopFuture<Message>? = try? self.edit(content)
-    }
-    
+
     public func delete() { }
 }
 
@@ -127,7 +148,7 @@ extension Message {
         }
     }
 
-    public func edit(_ content: String, embed: Embed? = nil) throws -> EventLoopFuture<Message> {
+    public func edit(_ content: String, embed: Embed? = nil) -> EventLoopFuture<Message> {
         let body = MessageEditPayload(content: content, embed: embed)
 
         return self.client.client.execute(.ChannelMessagesModify(self.channelId, self), body).map { (msg: Message) in

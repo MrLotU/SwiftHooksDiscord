@@ -4,7 +4,7 @@ public struct GuildRole: Codable {
     public let color: Int
     public let isHoisted: Bool
     public let position: Int
-    public let permissions: Int
+    public let permissions: Permissions
     public let isManaged: Bool
     public let isMentionable: Bool
     

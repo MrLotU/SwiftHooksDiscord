@@ -1,3 +1,4 @@
+import Logging
 import NIO
 
 extension DiscordHook {
@@ -19,17 +20,19 @@ extension DiscordHook {
 ///
 /// The Sharder class automates the sharding
 class Sharder {
+    let logger: Logger
     /// Amount of shards we should spawn
-    var shardCount: UInt8
+    var shardCount: Int
     
     /// Cache of hosts the shard with the given ID was connected to
-    var shardHosts: [UInt8: String]
+    var shardHosts: [Int: String]
     
     /// List of shards
     var shards: [Shard]
     
     /// Creates a new Sharder
     init() {
+        self.logger = Logger(label: "SwiftHooksDiscord.Sharder")
         self.shardCount = 0
         self.shardHosts = [:]
         self.shards = []
@@ -42,7 +45,7 @@ class Sharder {
     ///     - host: Host to spawn the shard on. Will be extended with Discord specific data
     ///     - t: Token to authenticate the shard
     ///     - handler: DiscordHandler class handeling this sharder and it's shards
-    func spawn(_ id: UInt8, on host: String, withToken t: String, on elg: EventLoopGroup, handledBy h: DiscordHook) {
+    func spawn(_ id: Int, on host: String, withToken t: String, on elg: EventLoopGroup, handledBy h: DiscordHook) {
         var host = "\(host)?v=\(DiscordHook.GatewayVersion)"
         
         host += "&encoding=\(DiscordHook.GatewayEncoding)"
@@ -52,7 +55,7 @@ class Sharder {
         
         shardHosts[id] = host
         
-        SwiftHooks.logger.info("Spawning shard \(id) with connection to \(host)")
+        self.logger.info("Spawning shard \(id) with connection to \(host)")
         
         let shard = Shard(id: id, hook: h, token: t, elg: elg)
         shard.connect(to: host)

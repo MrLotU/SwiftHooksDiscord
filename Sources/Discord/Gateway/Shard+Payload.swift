@@ -19,7 +19,7 @@ extension Shard {
             
         case .hello:
             guard let payload = payload.getData(GatewayHello.self, from: data) else {
-                SwiftHooks.logger.error("Couldn't handle HELLO. Shutting down shard.")
+                self.logger.error("Couldn't handle HELLO. Shutting down.")
                 disconnect()
                 return
             }
@@ -27,11 +27,11 @@ extension Shard {
             heartbeatTask = self.elg.next().scheduleRepeatedTask(initialDelay: .milliseconds(interval), delay: .milliseconds(interval)) { [weak self] (task) in
                 guard let strongSelf = self else { return }
                 guard !(strongSelf.socket?.isClosed ?? true) else {
-                    SwiftHooks.logger.warning("Hearbeating from closed shard \(strongSelf.id)")
+                    strongSelf.logger.warning("Hearbeating from closed shard")
                     return
                 }
                 guard strongSelf.ackMissed < 2 else {
-                    SwiftHooks.logger.error("Shard \(strongSelf.id) did not get HEARTBEAT_ACK. Reconnecting...")
+                    strongSelf.logger.error("Did not get HEARTBEAT_ACK. Reconnecting...")
                     strongSelf.reconnect()
                     return
                 }
@@ -57,7 +57,7 @@ extension Shard {
             ackMissed -= 1
             
         default:
-            SwiftHooks.logger.warning("Unhandled discord event: \(payload.op)")
+            self.logger.warning("Unhandled discord event: \(payload.op)")
         }
     }
 }

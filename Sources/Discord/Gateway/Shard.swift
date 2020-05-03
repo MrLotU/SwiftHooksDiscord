@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import NIO
 import WebSocketKit
 import zlib
@@ -8,14 +9,15 @@ fileprivate let ZlibSuffix: Bytes = [0x0, 0x0, 0xFF, 0xFF]
 /// A shard is a single connection to the Discord Gateway
 ///
 /// A bot can have multiple shards to spread the load
-final class Shard {
+final class Shard: GatewayClient {
+    var logger: Logger
     var ackMissed: Int {
         didSet {
-            print("Currently missed \(ackMissed) acks.")
+            self.logger.trace("Currently missed \(ackMissed) acks.")
         }
     }
     var buffer: Bytes
-    let id: UInt8
+    let id: Int
     var isBufferComplete: Bool {
         guard buffer.count >= 4 else {
             return false
@@ -33,13 +35,15 @@ final class Shard {
     var socketUrl: String?
     var stream = z_stream()
     
-    init(id: UInt8, hook: DiscordHook, token: String, elg: EventLoopGroup) {
+    init(id: Int, hook: DiscordHook, token: String, elg: EventLoopGroup) {
         self.id = id
         self.hook = hook
         self.elg = elg
         self.token = token
         self.buffer = Bytes()
         self.ackMissed = 0
+        self.logger = Logger(label: "SwiftHooksDiscord.Shard.\(id)")
+        logger[metadataKey: "shard-id"] = "\(self.id)"
         
         stream.avail_in = 0
         stream.next_in = nil
@@ -112,10 +116,9 @@ final class Shard {
         guard let data = text.data(using: .utf8) else { return }
         do {
             let payload = try SwiftHooks.decoder.decode(GatewaySinData.self, from: data)
-            print("GOT SOME! \(payload.op), \(payload.t?.rawValue ?? "")")
             handle(payload, data)
         } catch {
-            SwiftHooks.logger.error("Error handeling payload. \(error.localizedDescription). \(text)")
+            self.logger.error("Error handeling payload. \(error.localizedDescription). \(text)")
         }
     }
     
@@ -142,14 +145,13 @@ final class Shard {
     func send<T: Codable>(_ payload: GatewayPayload<T>) {
         do {
             let data = try SwiftHooks.encoder.encode(payload)
-            print(String(data: data, encoding: .utf8) ?? "WTH")
             let prom = self.elg.next().makePromise(of: Void.self)
             socket?.send(raw: data, opcode: .binary, promise: prom)
             prom.futureResult.whenFailure { (err) in
-                SwiftHooks.logger.error("Error sending data: \(err.localizedDescription)")
+                self.logger.error("Error sending data: \(err.localizedDescription)")
             }
         } catch {
-            SwiftHooks.logger.error("Error sending data: \(error.localizedDescription)")
+            self.logger.error("Error sending data: \(error.localizedDescription)")
         }
     }
     

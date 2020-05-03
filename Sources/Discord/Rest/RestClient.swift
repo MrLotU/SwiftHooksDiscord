@@ -3,6 +3,7 @@ import Foundation
 
 public enum DiscordRestError: Error {
     case InvalidPermissions
+    case NotAGuild
     case MessageNeedsContent
     case UnbannableInstance
     case UnusableParent

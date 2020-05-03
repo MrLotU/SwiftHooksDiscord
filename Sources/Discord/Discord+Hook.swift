@@ -3,13 +3,18 @@ import Foundation
 
 extension DiscordHook {
     public func boot(hooks: SwiftHooks? = nil) throws {
-        SwiftHooks.logger.info("Booting \(self.self)")
+        self.logger.info("Booting hook.")
         self.hooks = hooks
         self.register(StatePlugin())
-        let amountOfShards: UInt8 = 1
-        self.sharder.shardCount = amountOfShards
-        for i in 0..<amountOfShards {
-            self.sharder.spawn(i, on: "wss://gateway.discord.gg", withToken: token, on: self.eventLoopGroup, handledBy: self)
+        if let shardCount = self.options.sharding.totalShards, let shard = self.options.sharding.shardId {
+            self.sharder.shardCount = shardCount
+            self.sharder.spawn(shard, on: "wss://gateway.discord.gg", withToken: options.token, on: self.eventLoopGroup, handledBy: self)
+        } else {
+            let amountOfShards = 1
+            self.sharder.shardCount = amountOfShards
+            for i in 0..<amountOfShards {
+                self.sharder.spawn(i, on: "wss://gateway.discord.gg", withToken: options.token, on: self.eventLoopGroup, handledBy: self)
+            }
         }
     }
     
@@ -27,11 +32,11 @@ extension DiscordHook {
             var closures = self.discordListeners[event, default: []]
             closures.append { (data) in
                 guard let object = I.create(from: data, on: self) else {
-                    SwiftHooks.logger.debug("Unable to extract \(I.self) from data.")
+                    self.logger.debug("Unable to extract \(I.self) from data.")
                     return
                 }
                 guard let d = D.init(self) else {
-                    SwiftHooks.logger.debug("Unable to wrap \(I.self) in \(D.self) dispatch.")
+                    self.logger.debug("Unable to wrap \(I.self) in \(D.self) dispatch.")
                     return
                 }
                 try handler(d, object)
@@ -47,11 +52,11 @@ extension DiscordHook {
         guard let event = event as? DiscordEvent else { return }
         self.lock.withLockVoid {
             let handlers = self.discordListeners[event]
-            handlers?.forEach({ (handler) in
+            handlers?.forEach({ [weak self] (handler) in
                 do {
                     try handler(raw)
                 } catch {
-                    SwiftHooks.logger.error("\(error.localizedDescription)")
+                    self?.logger.error("\(error.localizedDescription)")
                 }
             })
         }
@@ -73,9 +78,40 @@ extension DiscordHook {
 }
 
 public struct DiscordHookOptions: HookOptions {
-    var token: String
+    public let token: String
+    public let errorPrefix: String?
+    public let highlightFormatting: String
+    public let state: DiscordStateOptions
+    public let sharding: DiscordShardingOptions
+    public let maxReconnects: Int?
     
-    public init(token: String) {
+    public struct DiscordStateOptions {
+        public let syncGuildmembers: Bool
+        public let cacheMessages: Bool
+        
+        public init(syncGuildmembers: Bool = true, cacheMessages: Bool = true) {
+            self.syncGuildmembers = syncGuildmembers
+            self.cacheMessages = cacheMessages
+        }
+    }
+    
+    public struct DiscordShardingOptions {
+        public let autoshard: Bool
+        public let shardId: Int?
+        public let totalShards: Int?
+        
+        public static let autosharding = DiscordShardingOptions(autoshard: true, shardId: nil, totalShards: nil)
+        public static func manual(shardId: Int, totalShards: Int) -> DiscordShardingOptions {
+            .init(autoshard: false, shardId: shardId, totalShards: totalShards)
+        }
+    }
+    
+    public init(token: String, errorPrefix: String? = nil, highlightFormatting: String = "`", state: DiscordHookOptions.DiscordStateOptions = .init(), sharding: DiscordHookOptions.DiscordShardingOptions = .autosharding, maxReconnects: Int? = nil) {
         self.token = token
+        self.errorPrefix = errorPrefix
+        self.highlightFormatting = highlightFormatting
+        self.state = state
+        self.sharding = sharding
+        self.maxReconnects = maxReconnects
     }
 }
