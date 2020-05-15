@@ -1,15 +1,12 @@
 import NIO
 import Foundation
 
-public struct Channel: DiscordGatewayType, DiscordHandled {
+public class Channel: DiscordGatewayType, DiscordHandled {
     public internal(set) var client: DiscordClient! {
         didSet {
-            var newRecipients = [User]()
-            for var user in self.recipients ?? [] {
+            for user in self.recipients ?? [] {
                 user.client = client
-                newRecipients.append(user)
             }
-            self.recipients = newRecipients
         }
     }
     public let id: Snowflake
@@ -24,7 +21,7 @@ public struct Channel: DiscordGatewayType, DiscordHandled {
     public let bitrate: Int?
     public let userLimit: Int?
     public let ratelimitPerUser: Int?
-    public private(set) var recipients: [User]?
+    public let recipients: [User]?
     public let icon: String?
     public let ownerId: Snowflake?
     public let applicationId: Snowflake?
@@ -97,14 +94,14 @@ extension Channel {
 
 extension Channel {
     func get(message id: Snowflake) -> EventLoopFuture<Message> {
-        return self.client.client.execute(Route.ChannelMessagesGet(self, id)).map { $0 as Message }
+        return self.client.rest.execute(Route.ChannelMessagesGet(self, id)).map { $0 as Message }
     }
 
     @discardableResult
     func send(_ msg: String, isTts: Bool = false, embed: Embed? = nil) -> EventLoopFuture<Message> {
-        let body = MessageCreatePayload(content: msg, nonce: nil, isTts: isTts, embed: embed)
+        let body = MessageCreatePayload(content: msg, nonce: nil, isTts: isTts, embed: embed, allowedMentions: .init(parse: [], roles: [], users: []))
 
-        return self.client.client.execute(.ChannelMessagesCreate(self), body).map { $0 as Message }
+        return self.client.rest.execute(.ChannelMessagesCreate(self), body).map { $0 as Message }
     }
 
 //    func getInvites(on client: DiscordRESTClient) -> EventLoopFuture<[ChannelInvite]> {
@@ -113,15 +110,15 @@ extension Channel {
 
 //    func createInvite
     var pins: EventLoopFuture<[Message]> {
-        return self.client.client.execute(.ChannelPinsGet(self)).map { $0 as [Message] }
+        return self.client.rest.execute(.ChannelPinsGet(self)).map { $0 as [Message] }
     }
 
     func pin(message id: Snowflake) {
-        self.client.client.execute(Route.ChannelsPinsAdd(self, id))
+        self.client.rest.execute(Route.ChannelsPinsAdd(self, id))
     }
 
     func unpin(message id: Snowflake) {
-        self.client.client.execute(Route.ChannelsPinsDelete(self, id))
+        self.client.rest.execute(Route.ChannelsPinsDelete(self, id))
     }
 
 //    var webhooks: EventLoopFuture<[Webhook]> {
@@ -133,29 +130,29 @@ extension Channel {
 //    }
 
     func send(_ message: MessageCreatePayload) throws -> EventLoopFuture<Message> {
-        return self.client.client.execute(.ChannelMessagesCreate(self), message).map { $0 as Message }
+        return self.client.rest.execute(.ChannelMessagesCreate(self), message).map { $0 as Message }
     }
 
     func startTyping() {
-        self.client.client.execute(.ChannelTyping(self))
+        self.client.rest.execute(.ChannelTyping(self))
     }
 
     func delete(messages ids: Snowflake...) throws {
         guard !ids.isEmpty else { return }
 
         if ids.count == 1, let id = ids.first {
-            self.client.client.execute(.ChannelMessagesDelete(self, id))
+            self.client.rest.execute(.ChannelMessagesDelete(self, id))
             return
         }
 
         let body = BulkDeleteMessagesPayload(messages: ids)
 
-        self.client.client.execute(.ChannelMessagesDeleteBulk(self.id), body)
+        self.client.rest.execute(.ChannelMessagesDeleteBulk(self.id), body)
     }
 
     func delete() throws {
         guard self.isDm || self.guild?.permissions?.contains(.manageChannels) ?? false else { throw DiscordRestError.InvalidPermissions }
-        self.client.client.execute(.ChannelDelete(self.id))
+        self.client.rest.execute(.ChannelDelete(self.id))
     }
 
     func close() throws {
@@ -174,7 +171,7 @@ extension Channel {
         _ permOverwrites: [PermissionOverwrite]? = nil,
         _ parent: Snowflake? = nil) throws -> EventLoopFuture<Channel> {
         let body = ModifyChannelPayload(name: name, position: pos, topic: topic, isNsfw: nsfw, rateLimit: rateLimit, bitrate: bitrate, userLimit: userLimit, permissionOverwrites: permOverwrites, parentId: parent)
-        return self.client.client.execute(.ChannelModify(self), body).map { $0 as Channel }
+        return self.client.rest.execute(.ChannelModify(self), body).map { $0 as Channel }
     }
 
     func createTextChannel(named name: String, at pos: Int? = nil, topic: String = "", rateLimitPerUser: Int? = nil, overwrites: [PermissionOverwrite]? = nil, isNsfw: Bool? = nil) throws -> EventLoopFuture<Channel> {

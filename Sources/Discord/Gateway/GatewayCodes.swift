@@ -12,6 +12,24 @@ enum OPCode: UInt8, Codable {
     case heartbeatAck = 11
 }
 
+extension OPCode: CustomStringConvertible {
+    var description: String {
+        switch self {
+        case .dispatch: return "dispatch"
+        case .heartbeat: return "heartbeat"
+        case .identify: return "identify"
+        case .statusUpdate: return "statusUpdate"
+        case .voiceStateUpdate: return "voiceStateUpdate"
+        case .resume: return "resume"
+        case .reconnect: return "reconnect"
+        case .requestGuildMembers: return "requestGuildMembers"
+        case .invalidSession: return "invalidSession"
+        case .hello: return "hello"
+        case .heartbeatAck: return "heartbeatAck"
+        }
+    }
+}
+
 /// Discorsd ErrorCodes
 enum GatewayErrorCode: Int, Error {
     case unknown = 4000

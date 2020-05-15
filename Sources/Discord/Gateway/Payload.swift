@@ -1,15 +1,16 @@
 import Foundation
+import protocol NIO.EventLoop
 
 public protocol DiscordGatewayType: PayloadType, Encodable { }
 protocol DiscordHandled {
     var client: DiscordClient! { get set }
 }
 public extension DiscordGatewayType {
-    static func create(from data: Data, on h: _Hook) -> Self? {
+    static func create(from data: Data, on h: _Hook, on eventLoop: EventLoop) -> Self? {
         do {
             let i = try DiscordHook.decoder.decode(GatewayData<Self>.self, from: data)
             if var d = i.d as? DiscordHandled, let h = h as? DiscordHook {
-                d.client = h
+                d.client = _DiscordClient(h, eventLoop: eventLoop)
                 return d as? Self
             }
             return i.d

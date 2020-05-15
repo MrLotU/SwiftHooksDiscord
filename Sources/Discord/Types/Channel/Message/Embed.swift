@@ -1,6 +1,6 @@
 public struct Embed: Codable {
     public let title: String?
-    public let type: String?
+    public let type: EmbedType?
     public let description: String?
     public let url: String?
     public let timestamp: String?
@@ -12,6 +12,10 @@ public struct Embed: Codable {
     public let provider: EmbedProvider?
     public let author: EmbedAuthor?
     public let fields: [EmbedField]?
+}
+
+public enum EmbedType: String, Codable {
+    case rich, image, video, gifv, article, link
 }
 
 public struct EmbedThumbnail: Codable {

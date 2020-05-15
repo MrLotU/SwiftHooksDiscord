@@ -1,62 +1,65 @@
 import NIO
 
-public struct Message: DiscordGatewayType, DiscordHandled {
-    public internal(set) var client: DiscordClient! {
-        didSet {
-            self.author?.client = client
-            self.member?.client = client
-            var newMentions = [User]()
-            for var u in self.mentions {
-                u.client = client
-                newMentions.append(u)
+
+public typealias Message = Discord.Message
+public extension Discord {
+    class Message: DiscordGatewayType, DiscordHandled {
+        public internal(set) var client: DiscordClient! {
+            didSet {
+                self.author?.client = client
+                self.member?.user = self.author
+                self.member?.client = client
+                self.member?.guildId = self.guildId
+                for u in self.mentions {
+                    u.client = client
+                }
             }
-            self.mentions = newMentions
         }
-    }
-    
-    public let id: Snowflake
-    public let channelId: Snowflake
-    public let guildId: Snowflake?
-    public private(set) var author: User?
-    public internal(set) var member: GuildMember?
-    public let content: String
-    public let timestamp: String
-    public let editedAt: String?
-    public let isTts: Bool
-    public let mentionsEveryone: Bool
-    public private(set) var mentions: [User]
-    public let mentionRoles: [Snowflake]
-    public let mentionChannels: [ChannelMention]?
-    public let attachments: [Attachment]
-    public let embeds: [Embed]
-    public let reactions: [Reaction]?
-    public let nonce: Snowflake?
-    public let isPinned: Bool
-    public let webhookId: Snowflake?
-    public let type: MessageType
-    public let activity: MessageActivity?
-    public let application: MessageApplication?
-    public let reference: MessageReference?
-    public let flags: MessageFlags?
-    
-    enum CodingKeys: String, CodingKey {
-        case id, author, content, member, timestamp, mentions, attachments, embeds, reactions, nonce, type, activity, application
-        case reference, flags
-        case channelId = "channel_id"
-        case guildId = "guild_id"
-        case editedAt = "edited_timestamp"
-        case isTts = "tts"
-        case mentionsEveryone = "mention_everyone"
-        case mentionRoles = "mention_roles"
-        case mentionChannels = "mention_channels"
-        case isPinned = "pinned"
-        case webhookId = "webhook_id"
+        
+        public let id: Snowflake
+        public let channelId: Snowflake
+        public let guildId: Snowflake?
+        public let author: User?
+        public let member: GuildMember?
+        public let content: String
+        public let timestamp: String
+        public let editedAt: String?
+        public let isTts: Bool
+        public let mentionsEveryone: Bool
+        public let mentions: [User]
+        public let mentionRoles: [Snowflake]
+        public let mentionChannels: [ChannelMention]?
+        public let attachments: [Attachment]
+        public let embeds: [Embed]
+        public let reactions: [Reaction]?
+        public let nonce: Snowflake?
+        public let isPinned: Bool
+        public let webhookId: Snowflake?
+        public let type: MessageType
+        public let activity: MessageActivity?
+        public let application: MessageApplication?
+        public let reference: MessageReference?
+        public let flags: MessageFlags?
+        
+        enum CodingKeys: String, CodingKey {
+            case id, author, content, member, timestamp, mentions, attachments, embeds, reactions, nonce, type, activity, application
+            case reference, flags
+            case channelId = "channel_id"
+            case guildId = "guild_id"
+            case editedAt = "edited_timestamp"
+            case isTts = "tts"
+            case mentionsEveryone = "mention_everyone"
+            case mentionRoles = "mention_roles"
+            case mentionChannels = "mention_channels"
+            case isPinned = "pinned"
+            case webhookId = "webhook_id"
+        }
     }
 }
 
 public extension Messageable {
-    var discord: Message? {
-        self as? Message
+    var discord: Discord.Message? {
+        self as? Discord.Message
     }
 }
 
@@ -75,7 +78,7 @@ extension Message: Messageable {
         }
     }
     
-    private func toGlobal(_ msg: Self) -> Messageable {
+    private func toGlobal(_ msg: Discord.Message) -> Messageable {
         return msg as Messageable
     }
     
@@ -108,7 +111,10 @@ extension Message: Messageable {
        }
     }
 
-    public func delete() { }
+    @discardableResult
+    public func delete() -> EventLoopFuture<Void> {
+        self.delete().map { (msg: Message) in return }
+    }
 }
 
 extension Message: Snowflakable {
@@ -142,41 +148,76 @@ extension Message {
     @discardableResult
     public func reply(_ content: String, isTts: Bool = false, embed: Embed? = nil) -> EventLoopFuture<Message> {
         return self.channel.send(content, isTts: isTts, embed: embed).map { (msg: Message) in
-            var m = msg
-            m.client = self.client
-            return m
+            msg.client = self.client
+            return msg
         }
     }
 
     public func edit(_ content: String, embed: Embed? = nil) -> EventLoopFuture<Message> {
-        let body = MessageEditPayload(content: content, embed: embed)
+        let body = MessageEditPayload(content: content, embed: embed, flags: nil)
 
-        return self.client.client.execute(.ChannelMessagesModify(self.channelId, self), body).map { (msg: Message) in
-            var m = msg
-            m.client = self.client
-            return m
+        return self.client.rest.execute(.ChannelMessagesModify(self.channelId, self), body).map { (msg: Message) in
+            msg.client = self.client
+            return msg
         }
     }
 
     public func delete() -> EventLoopFuture<Message> {
-        return self.client.client.execute(.ChannelMessagesDelete(self.channelId, self)).map { $0 as Message }
+        return self.client.rest.execute(.ChannelMessagesDelete(self.channelId, self)).map { $0 as Message }
     }
 
-    func add(reaction: Emoji) {
-        self.client.client.execute(.ChannelMessagesReactionsCreate(self.channelId, self, reaction.description))
+    public func addReaction(_ reaction: Emoji) -> EventLoopFuture<Void> {
+        return self.addReaction(reaction.urlValue)
+    }
+    
+    public func addReaction(_ reaction: String) -> EventLoopFuture<Void> {
+        guard reaction.isSingleEmoji || reaction.contains(":") else {
+            return self.client.eventLoop.makeFailedFuture(DiscordRestError.InvalidUnicodeEmoji)
+        }
+        return self.client.rest.execute(.ChannelMessagesReactionsCreate(self.channelId, self, reaction)).map { _ in }
     }
 
-    func remove(reaction: Emoji, user: User? = nil) {
+    public func removeReaction(_ reaction: Emoji, user: User? = nil) {
         let user = user != nil ? "\(user!.id)" : "@me"
 
-        self.client.client.execute(.ChannelMessagesReactionsDelete(self.channelId, self, reaction.description, user))
+        self.client.rest.execute(.ChannelMessagesReactionsDelete(self.channelId, self, reaction.urlValue, user))
     }
 
-    func mentions(_ entity: Snowflakable) -> Bool {
+    public func mentions(_ entity: Snowflakable) -> Bool {
         return self.mentions.sContains(entity) || self.mentionRoles.sContains(entity)
     }
 }
 
 public enum MessageType: Int, Codable {
-    case text = 0, recipientAdd = 1, recipientRemove = 2, call = 3, channelNameChange = 4, channelIconChange = 5, channelPinnedMessage = 6, guildMemberJoin = 7, userPremiumGuildSubscription = 8, subscriptionTierOne, subscriptionTierTwo, subscriptionTierThree, channelFollowAdd
+    case `default` = 0, recipientAdd = 1, recipientRemove = 2, call = 3, channelNameChange = 4, channelIconChange = 5, channelPinnedMessage = 6
+    case guildMemberJoin = 7, userPremiumGuildSubscription = 8, subscriptionTierOne = 9, subscriptionTierTwo = 10, subscriptionTierThree = 11
+    case channelFollowAdd = 12, guildDiscoveryDisqualified = 14, guildDiscoveryRequalified = 15
+}
+
+
+extension Character {
+    /// A simple emoji is one scalar and presented to the user as an Emoji
+    var isSimpleEmoji: Bool {
+        guard let firstScalar = unicodeScalars.first else { return false }
+        return firstScalar.properties.isEmoji && firstScalar.value > 0x238C
+    }
+
+    /// Checks if the scalars will be merged into an emoji
+    var isCombinedIntoEmoji: Bool { unicodeScalars.count > 1 && unicodeScalars.first?.properties.isEmoji ?? false }
+
+    var isEmoji: Bool { isSimpleEmoji || isCombinedIntoEmoji }
+}
+
+extension String {
+    var isSingleEmoji: Bool { count == 1 && containsEmoji }
+
+    var containsEmoji: Bool { contains { $0.isEmoji } }
+
+    var containsOnlyEmoji: Bool { !isEmpty && !contains { !$0.isEmoji } }
+
+    var emojiString: String { emojis.map { String($0) }.reduce("", +) }
+
+    var emojis: [Character] { filter { $0.isEmoji } }
+
+    var emojiScalars: [UnicodeScalar] { filter { $0.isEmoji }.flatMap { $0.unicodeScalars } }
 }

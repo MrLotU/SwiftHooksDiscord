@@ -21,16 +21,18 @@ public struct MessageCreatePayload: Codable {
     public let nonce: Snowflake?
     public let isTts: Bool?
     public let embed: Embed?
+    public let allowedMentions: AllowedMentions
     
     enum CodingKeys: String, CodingKey {
         case content, nonce, embed
-        case isTts = "tts"
+        case isTts = "tts", allowedMentions = "allowed_mentions"
     }
 }
 
 public struct MessageEditPayload: Codable {
     public let content: String?
     public let embed: Embed?
+    public let flags: MessageFlags?
 }
 
 public struct BulkDeleteMessagesPayload: Codable {
@@ -38,8 +40,8 @@ public struct BulkDeleteMessagesPayload: Codable {
 }
 
 public struct EditChannelPermissionsPayload: Codable {
-    public let allow: Int
-    public let deny: Int
+    public let allow: Permissions
+    public let deny: Permissions
     public let type: ChannelPermissionsType
     
     public enum ChannelPermissionsType: String, Codable {

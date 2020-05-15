@@ -62,3 +62,14 @@ public struct ChannelMention: Codable {
         case guildId = "guild_id"
     }
 }
+
+// See https://discord.com/developers/docs/resources/channel#allowed-mentions-object-allowed-mentions-reference
+public struct AllowedMentions: Codable {
+    public let parse: [AllowedMentionType]
+    public let roles: [Snowflake]
+    public let users: [Snowflake]
+}
+
+public enum AllowedMentionType: String, Codable {
+    case roles, users, everyone
+}

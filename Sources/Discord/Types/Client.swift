@@ -1,19 +1,32 @@
 import NIO
 
 public protocol DiscordClient {
-    var client: DiscordRESTClient { get }
+    var rest: DiscordRESTClient { get }
     var state: State { get }
     var options: DiscordHookOptions { get }
     // TODO: Make this nicer. Ugly way like this. Probably want to pass it down with the event.
     var eventLoop: EventLoop { get }
 }
 
-protocol GatewayClient {
-    func send<T: Codable>(_ payload: GatewayPayload<T>)
+struct _DiscordClient: DiscordClient {
+    var state: State {
+        h.state
+    }
+    var options: DiscordHookOptions {
+        h.options
+    }
+    let rest: DiscordRESTClient
+    let eventLoop: EventLoop
+    
+    private let h: DiscordHook
+    
+    internal init(_ h: DiscordHook, eventLoop: EventLoop) {
+        self.h = h
+        self.rest = .init(eventLoop, h.options.token)
+        self.eventLoop = eventLoop
+    }
 }
 
-extension DiscordHook: DiscordClient {
-    public var eventLoop: EventLoop {
-        return eventLoopGroup.next()
-    }
+protocol GatewayClient {
+    func send<T: Codable>(_ payload: GatewayPayload<T>)
 }

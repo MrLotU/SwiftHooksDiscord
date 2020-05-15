@@ -13,7 +13,9 @@ final class Shard: GatewayClient {
     var logger: Logger
     var ackMissed: Int {
         didSet {
-            self.logger.trace("Currently missed \(ackMissed) acks.")
+            if ackMissed > 1 {
+                self.logger.trace("Currently missed \(ackMissed) acks.")
+            }
         }
     }
     var buffer: Bytes
@@ -59,7 +61,7 @@ final class Shard: GatewayClient {
         self.heartbeatTask?.cancel()
     }
     
-    func handle(_ data: Data) {
+    func handle(_ data: Data, on eventLoop: EventLoop) {
         buffer.append(contentsOf: data)
         
         guard isBufferComplete else {
@@ -109,14 +111,14 @@ final class Shard: GatewayClient {
         if !text.isEmpty {
             buffer.removeAll()
         }
-        handle(text)
+        handle(text, on: eventLoop)
     }
         
-    func handle(_ text: String) {
+    func handle(_ text: String, on eventLoop: EventLoop) {
         guard let data = text.data(using: .utf8) else { return }
         do {
             let payload = try SwiftHooks.decoder.decode(GatewaySinData.self, from: data)
-            handle(payload, data)
+            handle(payload, data, on: eventLoop)
         } catch {
             self.logger.error("Error handeling payload. \(error.localizedDescription). \(text)")
         }
@@ -124,6 +126,7 @@ final class Shard: GatewayClient {
     
     func heartbeat() {
         let heartbeat = GatewayPayload(d: lastSequence, op: .heartbeat, s: nil, t: nil)
+        self.logger.trace("Heartbeating")
         send(heartbeat)
     }
         

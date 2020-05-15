@@ -1,36 +1,16 @@
 import Foundation
 import NIO
 
-public struct UnavailableGuild: DiscordGatewayType, DiscordHandled {
-    public internal(set) var client: DiscordClient!
-    public let id: Snowflake
-    public let unavailable: Bool
-    
-    enum CodingKeys: String, CodingKey {
-        case id, unavailable
-    }
-}
-
-public struct GuildBan: Codable {
-    public let reason: String?
-    public let user: User
-}
-
 public class Guild: DiscordGatewayType, DiscordHandled {
     public internal(set) var client: DiscordClient! {
         didSet {
-            var newMembers = [GuildMember]()
-            for var member in self.members {
+            for member in self.members {
                 member.client = client
-                newMembers.append(member)
+                member.guildId = self.id
             }
-            self.members = newMembers
-            var newChannels = [Channel]()
-            for var channel in self.channels {
+            for channel in self.channels {
                 channel.client = client
-                newChannels.append(channel)
             }
-            self.channels = newChannels
         }
     }
     
@@ -38,14 +18,13 @@ public class Guild: DiscordGatewayType, DiscordHandled {
     public let name: String
     public let icon: String?
     public let splash: String?
+    public let discoverySplash: String?
     public let isOwner: Bool?
     public let ownerId: Snowflake
     public let permissions: Permissions?
     public let region: String
     public let afkChannelId: Snowflake?
     public let afkTimeout: TimeInterval?
-    public let embedEnabled: Bool?
-    public let embedChannelId: Snowflake?
     public let verificationLevel: VerificationLevel
     public let defaultMessageNotifications: NotificationLevel
     public let explicitContentFilter: ExplicitContentFilterLevel
@@ -57,11 +36,13 @@ public class Guild: DiscordGatewayType, DiscordHandled {
     public let widgetEnabled: Bool?
     public let widgetChannelId: Snowflake?
     public let systemChannelId: Snowflake?
+    public let systemChannelFlags: SystemChannelFlags
+    public let rulesChannelId: Snowflake?
     public let joinedAt: String?
     public let isLarge: Bool?
     public let isUnavailable: Bool?
     public let memberCount: Int?
-//    public let voiceStates: [VoiceState]
+    public let voiceStates: [VoiceState]
     public internal(set) var members: [GuildMember]
     public internal(set) var channels: [Channel]
     public let presences: [GatewayPresenceUpdate]
@@ -73,59 +54,22 @@ public class Guild: DiscordGatewayType, DiscordHandled {
     public let premiumTier: PremiumTier
     public let premiumSubscriptionCount: Int?
     public let preferredLocale: String
+    public let publicUpdatesChannelId: Snowflake?
+    public let maxVideoChannelUsers: Int?
+    public let approximateMemberCount: Int?
+    public let approximatePresenceCount: Int?
     
     enum CodingKeys: String, CodingKey {
-        case id, name, icon, splash, permissions, region, roles, emojis, features, members, channels, presences
+        case id, name, icon, splash, discoverySplash = "discover_splash", permissions, region, roles, emojis, features, members, channels, presences
         case isOwner = "is_owner", ownerId = "owner_id", afkChannelId = "afk_channel_id", afkTimeout = "afk_timeout"
-        case embedEnabled = "embed_enabled", embedChannelId = "embed_channel_id", verificationLevel = "verification_level"
+        case verificationLevel = "verification_level"
         case defaultMessageNotifications = "default_message_notifications", explicitContentFilter = "explicit_content_filter"
         case mfaLevel = "mfa_level", applicationId = "application_id", widgetEnabled = "widget_enabled", widgetChannelId = "widget_channel_id"
-        case systemChannelId = "system_channel_id", joinedAt = "joined_at", isLarge = "large", isUnavailable = "unavailable", memberCount = "member_count"
-        case maxPresences = "max_presences", vanityUrlCode = "vanity_url_code", maxMembers = "max_members", description, banner
+        case systemChannelId = "system_channel_id", systemChannelFlags = "system_channel_flags", rulesChannelId = "rules_channel_id", joinedAt = "joined_at", isLarge = "large", isUnavailable = "unavailable", memberCount = "member_count"
+        case voiceStates = "voice_states", maxPresences = "max_presences", vanityUrlCode = "vanity_url_code", maxMembers = "max_members", description, banner
         case premiumTier = "premium_tier", premiumSubscriptionCount = "premium_subscription_count", preferredLocale = "preferred_locale"
-    }
-    
-    public required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = try container.decode(Snowflake.self, forKey: .id)
-        self.name = try container.decode(String.self, forKey: .name)
-        self.icon = try container.decodeIfPresent(String.self, forKey: .icon)
-        self.splash = try container.decodeIfPresent(String.self, forKey: .splash)
-        self.isOwner = try container.decodeIfPresent(Bool.self, forKey: .isOwner)
-        self.ownerId = try container.decode(Snowflake.self, forKey: .ownerId)
-        self.permissions = try container.decodeIfPresent(Permissions.self, forKey: .permissions)
-        self.region = try container.decode(String.self, forKey: .region)
-        self.afkChannelId = try container.decodeIfPresent(Snowflake.self, forKey: .afkChannelId)
-        let timeout = try container.decodeIfPresent(Int.self, forKey: .afkTimeout)
-        self.afkTimeout = timeout != nil ? Double(exactly: timeout!) : nil
-        self.embedEnabled = try container.decodeIfPresent(Bool.self, forKey: .embedEnabled)
-        self.embedChannelId = try container.decodeIfPresent(Snowflake.self, forKey: .embedChannelId)
-        self.verificationLevel = try container.decode(VerificationLevel.self, forKey: .verificationLevel)
-        self.defaultMessageNotifications = try container.decode(NotificationLevel.self, forKey: .defaultMessageNotifications)
-        self.explicitContentFilter = try container.decode(ExplicitContentFilterLevel.self, forKey: .explicitContentFilter)
-        self.roles = try container.decodeIfPresent([GuildRole].self, forKey: .roles) ?? []
-        self.emojis = try container.decodeIfPresent([Emoji].self, forKey: .emojis) ?? []
-        self.features = try container.decodeIfPresent([Feature].self, forKey: .features) ?? []
-        self.mfaLevel = try container.decode(MFALevel.self, forKey: .mfaLevel)
-        self.applicationId = try container.decodeIfPresent(Snowflake.self, forKey: .applicationId)
-        self.widgetEnabled = try container.decodeIfPresent(Bool.self, forKey: .widgetEnabled)
-        self.widgetChannelId = try container.decodeIfPresent(Snowflake.self, forKey: .widgetChannelId)
-        self.systemChannelId = try container.decodeIfPresent(Snowflake.self, forKey: .systemChannelId)
-        self.joinedAt = try container.decodeIfPresent(String.self, forKey: .joinedAt)
-        self.isLarge = try container.decodeIfPresent(Bool.self, forKey: .isLarge)
-        self.isUnavailable = try container.decodeIfPresent(Bool.self, forKey: .isUnavailable)
-        self.memberCount = try container.decodeIfPresent(Int.self, forKey: .memberCount)
-        self.members = try container.decodeIfPresent([GuildMember].self, forKey: .members) ?? []
-        self.channels = try container.decodeIfPresent([Channel].self, forKey: .channels) ?? []
-        self.presences = try container.decodeIfPresent([GatewayPresenceUpdate].self, forKey: .presences) ?? []
-        self.maxPresences = try container.decodeIfPresent(Int.self, forKey: .maxPresences)
-        self.maxMembers = try container.decodeIfPresent(Int.self, forKey: .maxMembers)
-        self.vanityUrlCode = try container.decodeIfPresent(String.self, forKey: .vanityUrlCode)
-        self.description = try container.decodeIfPresent(String.self, forKey: .description)
-        self.banner = try container.decodeIfPresent(String.self, forKey: .banner)
-        self.premiumTier = try container.decode(PremiumTier.self, forKey: .premiumTier)
-        self.premiumSubscriptionCount = try container.decodeIfPresent(Int.self, forKey: .premiumSubscriptionCount)
-        self.preferredLocale = try container.decode(String.self, forKey: .preferredLocale)
+        case publicUpdatesChannelId = "public_updates_channel_id", maxVideoChannelUsers = "max_video_channel_users", approximateMemberCount = "approximate_member_count"
+        case approximatePresenceCount = "approximate_presence_count"
     }
 }
 
@@ -144,11 +88,11 @@ extension Guild {
     
     public func createRole(named name: String, permissions: Permissions? = nil, color: Int = 1, isHoisted: Bool = false, isMentionable: Bool = false) -> EventLoopFuture<GuildRole> {
         let p = GuildRoleCreatePayload.init(name: name, permissions: permissions, color: color, hoist: isHoisted, mentionable: isMentionable)
-        return client.client.execute(.GuildRolesCreate(id), p)
+        return client.rest.execute(.GuildRolesCreate(id), p)
     }
     
     public func deleteRole(_ role: GuildRole) {
-        client.client.execute(.GuildRolesDelete(id, role.id))
+        client.rest.execute(.GuildRolesDelete(id, role.id))
     }
     
     public func requestGuildMembers() {
@@ -157,7 +101,7 @@ extension Guild {
     }
     
     public func getBans() -> EventLoopFuture<[GuildBan]> {
-        return client.client.execute(.GuildBansList(id))
+        return client.rest.execute(.GuildBansList(id))
     }
     
     public func ban(_ member: Snowflakable) throws {
@@ -165,7 +109,7 @@ extension Guild {
             throw DiscordRestError.UnbannableInstance
         }
         
-        client.client.execute(.GuildBansCreate(id, member.snowflakeDescription))
+        client.rest.execute(.GuildBansCreate(id, member.snowflakeDescription))
     }
     
     public func unban(_ member: Snowflakable) throws {
@@ -173,12 +117,12 @@ extension Guild {
             throw DiscordRestError.UnbannableInstance
         }
         
-        client.client.execute(.GuildBansRemove(id, member.snowflakeDescription))
+        client.rest.execute(.GuildBansRemove(id, member.snowflakeDescription))
     }
     
     public func createCategory(named name: String, at pos: Int? = nil) -> EventLoopFuture<Channel> {
         let p = CreatChannelPayload.init(name: name, type: .category, topic: nil, bitrate: nil, userLimit: nil, rateLimitPerUser: nil, position: pos, permissionOverwrites: nil, parentId: nil, nsfw: nil)
-        return client.client.execute(.GuildChannelsCreate(id), p)
+        return client.rest.execute(.GuildChannelsCreate(id), p)
     }
     
     public func createTextChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, topic: String? = nil, isNsfw: Bool? = nil, rateLimitPerUser: Int? = nil, permissionOverwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
@@ -186,7 +130,7 @@ extension Guild {
             throw DiscordRestError.UnusableParent
         }
         let p = CreatChannelPayload.init(name: name, type: .text, topic: topic, bitrate: nil, userLimit: nil, rateLimitPerUser: rateLimitPerUser, position: pos, permissionOverwrites: permissionOverwrites, parentId: parent?.id, nsfw: isNsfw)
-        return client.client.execute(.GuildChannelsCreate(id), p)
+        return client.rest.execute(.GuildChannelsCreate(id), p)
     }
     
     public func createVoiceChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, bitrate: Int? = nil, userLimit: Int? = nil, overwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
@@ -194,15 +138,15 @@ extension Guild {
             throw DiscordRestError.UnusableParent
         }
         let p = CreatChannelPayload.init(name: name, type: .voice, topic: nil, bitrate: bitrate, userLimit: userLimit, rateLimitPerUser: nil, position: pos, permissionOverwrites: overwrites, parentId: parent?.id, nsfw: nil)
-        return client.client.execute(.GuildChannelsCreate(id), p)
+        return client.rest.execute(.GuildChannelsCreate(id), p)
     }
     
     public func leave() {
-        client.client.execute(.UserGuildLeave(id))
+        client.rest.execute(.UserGuildLeave(id))
     }
     
     public func getEmojis() -> EventLoopFuture<Emoji> {
-        return client.client.execute(.GuildEmojisGet(id))
+        return client.rest.execute(.GuildEmojisGet(id))
     }
     
     public func getIconUrl(_ format: String = "png", _ size: Int = 1024) -> String? {
@@ -240,11 +184,10 @@ extension Guild {
     }
     
     public enum Feature: String, Codable {
+        case inviteSplash = "INVITE_SPLASH"
         case vipVoice = "VIP_REGIONS"
         case vanityUrl = "VANITY_URL"
-        case inviteSplash = "INVITE_SPLASH"
         case verified = "VERIFIED"
-        case moreEmojis = "MORE_EMOJI"
         case partnered = "PARTNERED"
         case `public` = "PUBLIC"
         case commerce = "COMMERCE"
@@ -253,6 +196,19 @@ extension Guild {
         case featureable = "FEATURABLE"
         case animatedIcon = "ANIMATED_ICON"
         case banner = "BANNER"
+        case publicDisabled = "PUBLIC_DISABLED"
+        case welcomeScreenEnabled = "WELCOME_SCREEN_ENABLED"
+    }
+    
+    public struct SystemChannelFlags: OptionSet, Codable {
+        public init(rawValue: Int) {
+            self.rawValue = rawValue
+        }
+        public let rawValue: Int
+        public typealias RawValue = Int
+        
+        public static let suppressJoinNotifications = SystemChannelFlags(rawValue: 1 << 0)
+        public static let suppressPremiumSubscriptions = SystemChannelFlags(rawValue: 1 << 1)
     }
     
     public enum PremiumTier: Int, Codable {

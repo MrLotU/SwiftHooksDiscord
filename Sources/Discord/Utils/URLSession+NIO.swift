@@ -12,7 +12,45 @@ enum HTTPMethod: String {
     case GET, POST, PATCH, DELETE, PUT, HEAD
 }
 
+struct RateLimit: Codable {
+    let retry_after: Int
+}
+
 extension URLSession {
+    func data(
+        _ request: URLRequest,
+        on eventLoop: EventLoop,
+        with promise: EventLoopPromise<(HTTPURLResponse, Data)>,
+        _ retries: Int = 0)
+    {
+        let task = self.dataTask(with: request) { data, response, error in
+            if let error = error {
+                promise.fail(URLSessionFutureError.networkError(error))
+                return
+            }
+            
+            guard let response = response as? HTTPURLResponse else {
+                promise.fail(URLSessionFutureError.invalidResponse)
+                return
+            }
+            
+            if response.statusCode == 429, let data = data, let limit = try? JSONDecoder().decode(RateLimit.self, from: data) {
+                // RATELIMITED :(
+                print("Ratelimited. Retrying in \(limit.retry_after)")
+                eventLoop.scheduleTask(in: .milliseconds(Int64(limit.retry_after))) {
+                    print("Retrying")
+                    self.data(request, on: eventLoop, with: promise, retries + 1)
+                }
+            }
+            
+            
+            promise.succeed((response, data ?? Data()))
+        }
+        
+        task.resume()
+    }
+
+    
     /// Get raw data from given URLRequest
     ///
     /// - parameters:
@@ -26,20 +64,8 @@ extension URLSession {
     {
         let promise = eventLoop.makePromise(of: (HTTPURLResponse, Data).self)
         
-        let task = self.dataTask(with: request) { data, response, error in
-            if let error = error {
-                promise.fail(URLSessionFutureError.networkError(error))
-                return
-            }
-            
-            guard let response = response as? HTTPURLResponse else {
-                promise.fail(URLSessionFutureError.invalidResponse)
-                return
-            }
-            promise.succeed((response, data ?? Data()))
-        }
+        self.data(request, on: eventLoop, with: promise)
         
-        task.resume()
         return promise.futureResult
     }
     
@@ -59,7 +85,12 @@ extension URLSession {
         on eventLoop: EventLoop) -> EventLoopFuture<(HTTPURLResponse, T)>
     {
         return data(request, on: eventLoop)
-            .flatMapThrowing { ($0.0, try decoder.decode(type, from: $0.1)) }
+            .flatMapThrowing {
+                if T.self is Empty.Type {
+                    return ($0.0, Empty() as! T)
+                }
+                return ($0.0, try decoder.decode(type, from: $0.1))
+        }
     }
     
     /// Get a decodable from given URLRequest

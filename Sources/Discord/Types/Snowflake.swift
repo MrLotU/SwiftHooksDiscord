@@ -64,6 +64,14 @@ extension Snowflake: Codable {
     }
 }
 
+extension Snowflake: ExpressibleByStringLiteral {
+    public typealias StringLiteralType = String
+    
+    public init(stringLiteral value: String) {
+        self.init(value)!
+    }
+}
+
 extension Snowflake: ExpressibleByIntegerLiteral {
     public typealias IntegerLiteralType = UInt64
 

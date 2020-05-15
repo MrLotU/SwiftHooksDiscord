@@ -7,6 +7,7 @@ public enum DiscordRestError: Error {
     case MessageNeedsContent
     case UnbannableInstance
     case UnusableParent
+    case InvalidUnicodeEmoji
 }
 
 /// Discord REST API Client
@@ -16,7 +17,7 @@ public enum DiscordRestError: Error {
 ///     client.execute(.ChannelMessagesCreate(channelId), payload)
 public final class DiscordRESTClient {
     /// The worker the requests are executed on
-    let worker: EventLoopGroup
+    let eventLoop: EventLoop
     /// The authentication token
     let token: String
     /// Shared URLSession
@@ -24,13 +25,16 @@ public final class DiscordRESTClient {
     
     /// Creates a new REST Client
     init(_ worker: EventLoopGroup, _ token: String) {
-        self.worker = worker
+        self.eventLoop = worker.next()
         self.token = token
         self.session = URLSession(configuration: .default)
     }
     
-    private var eventLoop: EventLoop {
-        return worker.next()
+    /// Creates a new REST Client
+    init(_ eventLoop: EventLoop, _ token: String) {
+        self.eventLoop = eventLoop
+        self.token = token
+        self.session = URLSession(configuration: .default)
     }
     
     /// The base auth headers for requests to the Discord API

@@ -9,13 +9,13 @@ class StatePlugin: Plugin {
     var listeners: some EventListeners {
         Listeners {
             Listeners {
-                Listener(Discord.ready) { _, ready in
-                    var user = ready.user
+                Listener(Discord.ready) { _, ready -> Void in
+                    let user = ready.user
                     user.client = ready.client
                     ready.state.me = user
                 }
                 
-                Listener(Discord.guildCreate) { _, guild in
+                Listener(Discord.guildCreate) { _, guild -> Void in
                     guild.state.guilds[guild.id] = guild
                     guild.channels.forEach {
                         guild.state.channels[$0.id] = $0
@@ -27,9 +27,9 @@ class StatePlugin: Plugin {
                     }
                 }
                 
-                Listener(Discord.guildUpdate) { _, update in }
+                Listener(Discord.guildUpdate) { _, update -> Void in }
                 
-                Listener(Discord.guildDelete) { _, event in
+                Listener(Discord.guildDelete) { _, event -> Void in
                     guard let guild = event.state.guilds[event.id] else { return }
                     for c in guild.channels {
                         event.state.channels[c.id] = nil
@@ -37,7 +37,7 @@ class StatePlugin: Plugin {
                     event.state.guilds[event.id] = nil
                 }
                 
-                Listener(Discord.channelCreate) { _, channel in
+                Listener(Discord.channelCreate) { _, channel -> Void in
                     channel.state.channels[channel.id] = channel
                     if channel.isGuild, let guildId = channel.guildId, let guild = channel.state.guilds[guildId] {
                         guild.channels[channel.id] = channel
@@ -46,9 +46,9 @@ class StatePlugin: Plugin {
                     }
                 }
                 
-                Listener(Discord.channelUpdate) { _, channelUpdate in }
+                Listener(Discord.channelUpdate) { _, channelUpdate -> Void in }
                 
-                Listener(Discord.channelDelete) { _, channel in
+                Listener(Discord.channelDelete) { _, channel -> Void in
                     channel.state.channels[channel.id] = nil
                     if channel.isGuild, let guildId = channel.guildId, let guild = channel.state.guilds[guildId] {
                         guild.channels[channel.id] = nil
@@ -57,7 +57,7 @@ class StatePlugin: Plugin {
                     }
                 }
                 
-                Listener(Discord.guildMemberAdd) { _, member in
+                Listener(Discord.guildMemberAdd) { _, member -> Void in
                     member.state.users[member.user.id] = member.user
             
                     if let id = member.guildId, let guild = member.state.guilds[id] {
@@ -65,11 +65,11 @@ class StatePlugin: Plugin {
                     }
                 }
                 
-                Listener(Discord.guildMemberUpdate) { _, guildMemberUpdate in }
+                Listener(Discord.guildMemberUpdate) { _, guildMemberUpdate -> Void in }
                 
-                Listener(Discord.guildMembersChunk) { _, chunk in
+                Listener(Discord.guildMembersChunk) { _, chunk -> Void in
                     guard let guild = chunk.state.guilds[chunk.guildId] else { return }
-                    for var mem in chunk.members {
+                    for mem in chunk.members {
                         mem.guildId = guild.id
                         guild.members[mem.user.id] = mem
             
@@ -78,24 +78,24 @@ class StatePlugin: Plugin {
                 }
             }
             Listeners {
-                Listener(Discord.guildRoleCreate) { _, event in
+                Listener(Discord.guildRoleCreate) { _, event -> Void in
                     guard let guild = event.state.guilds[event.guildId] else { return }
                     guild.roles[event.role.id] = event.role
                 }
                 
-                Listener(Discord.guildRoleUpdate) { _, guildRoleUpdate in }
+                Listener(Discord.guildRoleUpdate) { _, guildRoleUpdate -> Void in }
                 
-                Listener(Discord.guildRoleDelete) { _, event in
+                Listener(Discord.guildRoleDelete) { _, event -> Void in
                     guard let guild = event.state.guilds[event.guildId], guild.roles.sContains(event.roleId) else { return }
                     guild.roles[event.roleId] = nil
                 }
                 
-                Listener(Discord.guildEmojisUpdate) { _, event in
+                Listener(Discord.guildEmojisUpdate) { _, event -> Void in
                     guard let guild = event.state.guilds[event.guildId] else { return }
                     guild.emojis = event.emojis
                 }
                 
-                Listener(Discord.presenceUpdate) { _, presenceUpdate in }
+                Listener(Discord.presenceUpdate) { _, presenceUpdate -> Void in }
             }
         }
     }

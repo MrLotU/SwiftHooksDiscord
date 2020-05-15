@@ -8,11 +8,11 @@ public struct Route {
     let endpoint: String
     
     /// Discord API base URL
-    private let baseURL = "https://discordapp.com/api/v7"
+    private let baseURL = "https://discord.com/api/v7"
     
     /// URL to route to
     public var url: URL {
-        return URL(string: baseURL + endpoint)!
+        return URL(string: baseURL + (endpoint.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? endpoint))!
     }
     
     /// Creates a new Route

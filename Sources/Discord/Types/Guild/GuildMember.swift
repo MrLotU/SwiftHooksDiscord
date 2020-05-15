@@ -1,22 +1,21 @@
-public struct GuildMember: DiscordGatewayType, DiscordHandled {
+public class GuildMember: DiscordGatewayType, DiscordHandled {
     public internal(set) var client: DiscordClient! {
         didSet {
-            guard var newUser = user else { return }
-            newUser.client = client
-            self.user = newUser
+            self.user?.client = client
         }
     }
-    public internal(set) var user: User! // Missing in MESSAGE_CREATE
+    public internal(set) var user: User! // Missing in MESSAGE_CREATE or MESSAGE_UPDATE
     public let nick: String?
     public let roles: [Snowflake]
     public let joinedAt: String
+    public let premiumSince: String?
     public let isDeafened: Bool
     public let isMuted: Bool
     public internal(set) var guildId: Snowflake? // Only sent with GUILD_CREATE
     
     enum CodingKeys: String, CodingKey {
-        case user, nick, roles
-        case joinedAt = "joined_at", isDeafened = "deaf", isMuted = "mute", guildId = "guild_id"
+        case user, nick, roles, joinedAt = "joined_at"
+        case premiumSince = "premium_since", isDeafened = "deaf", isMuted = "mute", guildId = "guild_id"
     }
 }
 
@@ -42,7 +41,7 @@ extension GuildMember {
     }
     
     public func kick() {
-        client.client.execute(.GuildMembersRemove(guild.id, id))
+        client.rest.execute(.GuildMembersRemove(guild.id, id))
     }
     
     public func ban() throws {
@@ -55,10 +54,10 @@ extension GuildMember {
     
     public func setNickname(_ nick: String) {
         if self.client.state.me.id == self.user.id {
-            self.client.client.execute(.GuildMembersModifyNickMe(id), ModifyNickMePayload(nick: nick))
+            self.client.rest.execute(.GuildMembersModifyNickMe(id), ModifyNickMePayload(nick: nick))
         } else {
             let p = ModifyGuildMemberPayload.init(nick: nick, roles: nil, mute: nil, deaf: nil, channel_id: nil)
-            self.client.client.execute(.GuildMembersModify(guild.id, id), p)
+            self.client.rest.execute(.GuildMembersModify(guild.id, id), p)
         }
     }
     
@@ -67,16 +66,16 @@ extension GuildMember {
     }
     
     public func modify(roles: [GuildRole]? = nil, isMuted: Bool? = nil, isDeafened: Bool? = nil, voiceChannel: Snowflake? = nil) {
-        let p = ModifyGuildMemberPayload.init(nick: nil, roles: roles, mute: isMuted, deaf: isDeafened, channel_id: voiceChannel)
-        self.client.client.execute(.GuildMembersModify(guild.id, id), p)
+        let p = ModifyGuildMemberPayload.init(nick: nil, roles: roles?.map(\.id), mute: isMuted, deaf: isDeafened, channel_id: voiceChannel)
+        self.client.rest.execute(.GuildMembersModify(guild.id, id), p)
     }
 
     public func addRole(_ role: GuildRole) {
-        self.client.client.execute(.GuildMembersRoleAdd(guild.id, id, role.id))
+        self.client.rest.execute(.GuildMembersRoleAdd(guild.id, id, role.id))
     }
 
     public func removeRole(_ role: GuildRole) {
-        self.client.client.execute(.GuildMembersRoleRemove(guild.id, id, role.id))
+        self.client.rest.execute(.GuildMembersRoleRemove(guild.id, id, role.id))
     }
 
     public var isOwner: Bool {

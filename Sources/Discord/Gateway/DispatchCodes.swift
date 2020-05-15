@@ -3,7 +3,8 @@ import protocol NIO.EventLoop
 
 extension CommandEvent {
     public var discord: DiscordClient? {
-        return hook as? DiscordClient
+        guard let h = hook as? DiscordHook else { return nil }
+        return _DiscordClient(h, eventLoop: eventLoop)
     }
 }
 
@@ -11,10 +12,10 @@ public struct DiscordDispatch: EventDispatch {
     public let eventLoop: EventLoop
     public let client: DiscordClient
     
-    public init?(_ h: _Hook) {
+    public init?(_ h: _Hook, eventLoop: EventLoop) {
         guard let h = h as? DiscordHook else { return nil }
-        self.eventLoop = h.eventLoop
-        self.client = h
+        self.eventLoop = eventLoop
+        self.client = _DiscordClient(h, eventLoop: eventLoop)
     }
 }
 
