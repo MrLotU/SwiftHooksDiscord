@@ -12,6 +12,22 @@ public struct Embed: Codable {
     public let provider: EmbedProvider?
     public let author: EmbedAuthor?
     public let fields: [EmbedField]?
+    
+    public init(title: String? = nil, type: EmbedType? = nil, description: String? = nil, url: String? = nil, timestamp: String? = nil, color: Int? = nil, footer: EmbedFooter? = nil, image: EmbedImage? = nil, thumbnail: EmbedThumbnail? = nil, video: EmbedVideo? = nil, provider: EmbedProvider? = nil, author: EmbedAuthor? = nil, fields: [EmbedField]? = nil) {
+        self.title = title
+        self.type = type
+        self.description = description
+        self.url = url
+        self.timestamp = timestamp
+        self.color = color
+        self.footer = footer
+        self.image = image
+        self.thumbnail = thumbnail
+        self.video = video
+        self.provider = provider
+        self.author = author
+        self.fields = fields
+    }
 }
 
 public enum EmbedType: String, Codable {

@@ -99,6 +99,10 @@ public struct ModifyRolePayload: Codable {
     public let mentionable: Bool?
 }
 
+public struct GuildPruneResult: Codable {
+    public let pruned: Int?
+}
+
 public struct GuildIntegrationCreatePayload: Codable {
     public let type: String
     public let id: Snowflake
@@ -117,6 +121,12 @@ public struct UnavailableGuild: DiscordGatewayType, DiscordHandled {
     
     enum CodingKeys: String, CodingKey {
         case id, unavailable
+    }
+    
+    func copyWith(_ client: DiscordClient) -> UnavailableGuild {
+        var x = self
+        x.client = client
+        return x
     }
 }
 

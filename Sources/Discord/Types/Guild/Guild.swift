@@ -1,7 +1,7 @@
 import Foundation
 import NIO
 
-public class Guild: DiscordGatewayType, DiscordHandled {
+public final class Guild: DiscordGatewayType, DiscordHandled {
     public internal(set) var client: DiscordClient! {
         didSet {
             for member in self.members {
@@ -71,6 +71,59 @@ public class Guild: DiscordGatewayType, DiscordHandled {
         case publicUpdatesChannelId = "public_updates_channel_id", maxVideoChannelUsers = "max_video_channel_users", approximateMemberCount = "approximate_member_count"
         case approximatePresenceCount = "approximate_presence_count"
     }
+    
+    func copyWith(_ client: DiscordClient) -> Guild {
+        let x = Guild(id: id, name: name, icon: icon, splash: splash, discoverySplash: discoverySplash, isOwner: isOwner, ownerId: ownerId, permissions: permissions, region: region, afkChannelId: afkChannelId, afkTimeout: afkTimeout, verificationLevel: verificationLevel, defaultMessageNotifications: defaultMessageNotifications, explicitContentFilter: explicitContentFilter, roles: roles, emojis: emojis, features: features, mfaLevel: mfaLevel, applicationId: applicationId, widgetEnabled: widgetEnabled, widgetChannelId: widgetChannelId, systemChannelId: systemChannelId, systemChannelFlags: systemChannelFlags, rulesChannelId: rulesChannelId, joinedAt: joinedAt, isLarge: isLarge, isUnavailable: isUnavailable, memberCount: memberCount, voiceStates: voiceStates, members: members, channels: channels, presences: presences, maxPresences: maxPresences, maxMembers: maxMembers, vanityUrlCode: vanityUrlCode, description: description, banner: banner, premiumTier: premiumTier, premiumSubscriptionCount: premiumSubscriptionCount, preferredLocale: preferredLocale, publicUpdatesChannelId: publicUpdatesChannelId, maxVideoChannelUsers: maxVideoChannelUsers, approximateMemberCount: approximateMemberCount, approximatePresenceCount: approximatePresenceCount)
+        x.client = client
+        return x
+    }
+    
+    internal init(id: Snowflake, name: String, icon: String?, splash: String?, discoverySplash: String?, isOwner: Bool?, ownerId: Snowflake, permissions: Permissions?, region: String, afkChannelId: Snowflake?, afkTimeout: TimeInterval?, verificationLevel: Guild.VerificationLevel, defaultMessageNotifications: Guild.NotificationLevel, explicitContentFilter: Guild.ExplicitContentFilterLevel, roles: [GuildRole], emojis: [Emoji], features: [Guild.Feature], mfaLevel: Guild.MFALevel, applicationId: Snowflake?, widgetEnabled: Bool?, widgetChannelId: Snowflake?, systemChannelId: Snowflake?, systemChannelFlags: Guild.SystemChannelFlags, rulesChannelId: Snowflake?, joinedAt: String?, isLarge: Bool?, isUnavailable: Bool?, memberCount: Int?, voiceStates: [VoiceState], members: [GuildMember], channels: [Channel], presences: [GatewayPresenceUpdate], maxPresences: Int?, maxMembers: Int?, vanityUrlCode: String?, description: String?, banner: String?, premiumTier: Guild.PremiumTier, premiumSubscriptionCount: Int?, preferredLocale: String, publicUpdatesChannelId: Snowflake?, maxVideoChannelUsers: Int?, approximateMemberCount: Int?, approximatePresenceCount: Int?) {
+        self.id = id
+        self.name = name
+        self.icon = icon
+        self.splash = splash
+        self.discoverySplash = discoverySplash
+        self.isOwner = isOwner
+        self.ownerId = ownerId
+        self.permissions = permissions
+        self.region = region
+        self.afkChannelId = afkChannelId
+        self.afkTimeout = afkTimeout
+        self.verificationLevel = verificationLevel
+        self.defaultMessageNotifications = defaultMessageNotifications
+        self.explicitContentFilter = explicitContentFilter
+        self.roles = roles
+        self.emojis = emojis
+        self.features = features
+        self.mfaLevel = mfaLevel
+        self.applicationId = applicationId
+        self.widgetEnabled = widgetEnabled
+        self.widgetChannelId = widgetChannelId
+        self.systemChannelId = systemChannelId
+        self.systemChannelFlags = systemChannelFlags
+        self.rulesChannelId = rulesChannelId
+        self.joinedAt = joinedAt
+        self.isLarge = isLarge
+        self.isUnavailable = isUnavailable
+        self.memberCount = memberCount
+        self.voiceStates = voiceStates
+        self.members = members
+        self.channels = channels
+        self.presences = presences
+        self.maxPresences = maxPresences
+        self.maxMembers = maxMembers
+        self.vanityUrlCode = vanityUrlCode
+        self.description = description
+        self.banner = banner
+        self.premiumTier = premiumTier
+        self.premiumSubscriptionCount = premiumSubscriptionCount
+        self.preferredLocale = preferredLocale
+        self.publicUpdatesChannelId = publicUpdatesChannelId
+        self.maxVideoChannelUsers = maxVideoChannelUsers
+        self.approximateMemberCount = approximateMemberCount
+        self.approximatePresenceCount = approximatePresenceCount
+    }
 }
 
 extension Guild {
@@ -88,11 +141,11 @@ extension Guild {
     
     public func createRole(named name: String, permissions: Permissions? = nil, color: Int = 1, isHoisted: Bool = false, isMentionable: Bool = false) -> EventLoopFuture<GuildRole> {
         let p = GuildRoleCreatePayload.init(name: name, permissions: permissions, color: color, hoist: isHoisted, mentionable: isMentionable)
-        return client.rest.execute(.GuildRolesCreate(id), p)
+        return client.rest.execute(.GuildRolesCreate(id, p))
     }
     
-    public func deleteRole(_ role: GuildRole) {
-        client.rest.execute(.GuildRolesDelete(id, role.id))
+    public func deleteRole(_ role: GuildRole) -> EventLoopFuture<Void> {
+        client.rest.execute(.GuildRolesDelete(id, role.id)).toVoidFuture()
     }
     
     public func requestGuildMembers() {
@@ -104,59 +157,67 @@ extension Guild {
         return client.rest.execute(.GuildBansList(id))
     }
     
-    public func ban(_ member: Snowflakable) throws {
+    public func ban(_ member: Snowflakable) -> EventLoopFuture<Void> {
         guard member is GuildMember || member is User else {
-            throw DiscordRestError.UnbannableInstance
+            return client.eventLoop.makeFailedFuture(DiscordRestError.UnbannableInstance)
         }
         
-        client.rest.execute(.GuildBansCreate(id, member.snowflakeDescription))
+        return client.rest.execute(.GuildBansCreate(id, member.snowflakeDescription, Todo())).toVoidFuture()
     }
     
-    public func unban(_ member: Snowflakable) throws {
+    public func unban(_ member: Snowflakable) -> EventLoopFuture<Void> {
         guard member is GuildMember || member is User else {
-            throw DiscordRestError.UnbannableInstance
+            return client.eventLoop.makeFailedFuture(DiscordRestError.UnbannableInstance)
         }
         
-        client.rest.execute(.GuildBansRemove(id, member.snowflakeDescription))
+        return client.rest.execute(.GuildBansRemove(id, member.snowflakeDescription)).toVoidFuture()
     }
     
     public func createCategory(named name: String, at pos: Int? = nil) -> EventLoopFuture<Channel> {
         let p = CreatChannelPayload.init(name: name, type: .category, topic: nil, bitrate: nil, userLimit: nil, rateLimitPerUser: nil, position: pos, permissionOverwrites: nil, parentId: nil, nsfw: nil)
-        return client.rest.execute(.GuildChannelsCreate(id), p)
+        return client.rest.execute(.GuildChannelsCreate(id, p))
     }
     
-    public func createTextChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, topic: String? = nil, isNsfw: Bool? = nil, rateLimitPerUser: Int? = nil, permissionOverwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
+    public func createTextChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, topic: String? = nil, isNsfw: Bool? = nil, rateLimitPerUser: Int? = nil, permissionOverwrites: [PermissionOverwrite]? = nil, on client: DiscordClient? = nil) -> EventLoopFuture<Channel> {
+        let client: DiscordClient! = client ?? self.client
         guard parent == nil || parent?.type == .category else {
-            throw DiscordRestError.UnusableParent
+            return client.eventLoop.makeFailedFuture(DiscordRestError.UnusableParent)
         }
         let p = CreatChannelPayload.init(name: name, type: .text, topic: topic, bitrate: nil, userLimit: nil, rateLimitPerUser: rateLimitPerUser, position: pos, permissionOverwrites: permissionOverwrites, parentId: parent?.id, nsfw: isNsfw)
-        return client.rest.execute(.GuildChannelsCreate(id), p)
+        return client.rest.execute(.GuildChannelsCreate(id, p)).map { (x: Channel) in
+            x.client = client
+            return x
+        }
     }
     
-    public func createVoiceChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, bitrate: Int? = nil, userLimit: Int? = nil, overwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
+    public func createVoiceChannel(named name: String, at pos: Int? = nil, parent: Channel? = nil, bitrate: Int? = nil, userLimit: Int? = nil, overwrites: [PermissionOverwrite]? = nil, on client: DiscordClient? = nil) -> EventLoopFuture<Channel> {
+        let client: DiscordClient! = client ?? self.client
         guard parent == nil || parent?.type == .category else {
-            throw DiscordRestError.UnusableParent
+            return client.eventLoop.makeFailedFuture(DiscordRestError.UnusableParent)
         }
         let p = CreatChannelPayload.init(name: name, type: .voice, topic: nil, bitrate: bitrate, userLimit: userLimit, rateLimitPerUser: nil, position: pos, permissionOverwrites: overwrites, parentId: parent?.id, nsfw: nil)
-        return client.rest.execute(.GuildChannelsCreate(id), p)
+        return client.rest.execute(.GuildChannelsCreate(id, p)).map { (c: Channel) in
+            c.client = client
+            return c
+        }
     }
     
-    public func leave() {
-        client.rest.execute(.UserGuildLeave(id))
+    public func leave() -> EventLoopFuture<Void> {
+        client.rest.execute(.UserGuildLeave(id)).toVoidFuture()
     }
     
-    public func getEmojis() -> EventLoopFuture<Emoji> {
+    public func getEmojis() -> EventLoopFuture<[Emoji]> {
         return client.rest.execute(.GuildEmojisGet(id))
     }
     
     public func getIconUrl(_ format: String = "png", _ size: Int = 1024) -> String? {
         guard let icon = self.icon else { return nil }
-        return "https://cdn.discordapp.com/icons/\(id)/\(icon).\(format)?size=\(size)"
+        return "https://cdn.discord.com/icons/\(id)/\(icon).\(format)?size=\(size)"
     }
     
     public func getSplashUrl(_ format: String = "png", _ size: Int = 1024) -> String? {
         guard let splash = self.splash else { return nil }
-        return "https://cdn.discordapp.com/splashes/\(id)/\(splash).\(format)?size=\(size)"
+        return "https://cdn.discord.com/splashes/\(id)/\(splash).\(format)?size=\(size)"
     }
 }
 

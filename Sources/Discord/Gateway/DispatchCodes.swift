@@ -8,9 +8,21 @@ extension CommandEvent {
     }
 }
 
-public struct DiscordDispatch: EventDispatch {
+public struct DiscordDispatch: EventDispatch, DiscordClient {
     public let eventLoop: EventLoop
-    public let client: DiscordClient
+    private let client: DiscordClient
+    
+    public var rest: DiscordRESTClient {
+        client.rest
+    }
+    
+    public var state: State {
+        client.state
+    }
+    
+    public var options: DiscordHookOptions {
+        client.options
+    }
     
     public init?(_ h: _Hook, eventLoop: EventLoop) {
         guard let h = h as? DiscordHook else { return nil }
@@ -104,4 +116,14 @@ public enum Discord {
     public static let webhooksUpdate = _DiscordEvent(._webhooksUpdate, GatewayWebhooksUpdate.self)
 }
 
-public struct Empty: PayloadType { }
+public struct Empty: Codable, PayloadType, QueryItemConvertible {
+    public func toQueryItems() -> [URLQueryItem] {
+        return []
+    }
+}
+
+public struct Todo: QueryItemConvertible {
+    public func toQueryItems() -> [URLQueryItem] {
+        fatalError()
+    }
+}

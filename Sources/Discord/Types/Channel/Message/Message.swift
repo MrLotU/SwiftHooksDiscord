@@ -3,7 +3,7 @@ import NIO
 
 public typealias Message = Discord.Message
 public extension Discord {
-    class Message: DiscordGatewayType, DiscordHandled {
+    final class Message: DiscordGatewayType, DiscordHandled {
         public internal(set) var client: DiscordClient! {
             didSet {
                 self.author?.client = client
@@ -53,6 +53,43 @@ public extension Discord {
             case mentionChannels = "mention_channels"
             case isPinned = "pinned"
             case webhookId = "webhook_id"
+        }
+        
+        public lazy var channel: Channel = {
+            return self.client.state.channels[channelId]!.copyWith(self.client)
+        }()
+        
+        func copyWith(_ client: DiscordClient) -> Message {
+            let x = Message(id: id, channelId: channelId, guildId: guildId, author: author, member: member, content: content, timestamp: timestamp, editedAt: editedAt, isTts: isTts, mentionsEveryone: mentionsEveryone, mentions: mentions, mentionRoles: mentionRoles, mentionChannels: mentionChannels, attachments: attachments, embeds: embeds, reactions: reactions, nonce: nonce, isPinned: isPinned, webhookId: webhookId, type: type, activity: activity, application: application, reference: reference, flags: flags)
+            x.client = client
+            return x
+        }
+        
+        internal init(id: Snowflake, channelId: Snowflake, guildId: Snowflake?, author: Discord.User?, member: GuildMember?, content: String, timestamp: String, editedAt: String?, isTts: Bool, mentionsEveryone: Bool, mentions: [Discord.User], mentionRoles: [Snowflake], mentionChannels: [ChannelMention]?, attachments: [Attachment], embeds: [Embed], reactions: [Reaction]?, nonce: Snowflake?, isPinned: Bool, webhookId: Snowflake?, type: MessageType, activity: MessageActivity?, application: MessageApplication?, reference: MessageReference?, flags: MessageFlags?) {
+            self.id = id
+            self.channelId = channelId
+            self.guildId = guildId
+            self.author = author
+            self.member = member
+            self.content = content
+            self.timestamp = timestamp
+            self.editedAt = editedAt
+            self.isTts = isTts
+            self.mentionsEveryone = mentionsEveryone
+            self.mentions = mentions
+            self.mentionRoles = mentionRoles
+            self.mentionChannels = mentionChannels
+            self.attachments = attachments
+            self.embeds = embeds
+            self.reactions = reactions
+            self.nonce = nonce
+            self.isPinned = isPinned
+            self.webhookId = webhookId
+            self.type = type
+            self.activity = activity
+            self.application = application
+            self.reference = reference
+            self.flags = flags
         }
     }
 }
@@ -110,11 +147,6 @@ extension Message: Messageable {
            self.reply("Something went wrong!\nUsage: \(help)")
        }
     }
-
-    @discardableResult
-    public func delete() -> EventLoopFuture<Void> {
-        self.delete().map { (msg: Message) in return }
-    }
 }
 
 extension Message: Snowflakable {
@@ -129,41 +161,30 @@ extension Message {
         return !(author.id == client.state.me.id) && !(author.isBot ?? false)
     }
 
-    public var channel: Channel {
-        return self.client.state.channels[channelId]!
-    }
-
     public var guild: Guild? {
         return self.channel.guild
     }
 
-    public func pin() {
+    public func pin() -> EventLoopFuture<Void> {
         self.channel.pin(message: self.id)
     }
 
-    public func unpin() {
+    public func unpin() -> EventLoopFuture<Void> {
         self.channel.unpin(message: self.id)
     }
 
-    @discardableResult
     public func reply(_ content: String, isTts: Bool = false, embed: Embed? = nil) -> EventLoopFuture<Message> {
-        return self.channel.send(content, isTts: isTts, embed: embed).map { (msg: Message) in
-            msg.client = self.client
-            return msg
-        }
+        return self.channel.send(content, isTts: isTts, embed: embed).map(setClient)
     }
 
     public func edit(_ content: String, embed: Embed? = nil) -> EventLoopFuture<Message> {
         let body = MessageEditPayload(content: content, embed: embed, flags: nil)
 
-        return self.client.rest.execute(.ChannelMessagesModify(self.channelId, self), body).map { (msg: Message) in
-            msg.client = self.client
-            return msg
-        }
+        return self.client.rest.execute(.ChannelMessagesModify(self.channelId, self, body)).map(setClient)
     }
 
-    public func delete() -> EventLoopFuture<Message> {
-        return self.client.rest.execute(.ChannelMessagesDelete(self.channelId, self)).map { $0 as Message }
+    public func delete() -> EventLoopFuture<Void> {
+        return self.client.rest.execute(.ChannelMessagesDelete(self.channelId, self)).toVoidFuture()
     }
 
     public func addReaction(_ reaction: Emoji) -> EventLoopFuture<Void> {
@@ -177,14 +198,21 @@ extension Message {
         return self.client.rest.execute(.ChannelMessagesReactionsCreate(self.channelId, self, reaction)).map { _ in }
     }
 
-    public func removeReaction(_ reaction: Emoji, user: User? = nil) {
-        let user = user != nil ? "\(user!.id)" : "@me"
-
-        self.client.rest.execute(.ChannelMessagesReactionsDelete(self.channelId, self, reaction.urlValue, user))
+    public func removeReaction(_ reaction: Emoji, user: User? = nil) -> EventLoopFuture<Void> {
+        self.client.rest.execute(
+            .ChannelMessagesReactionsDelete(self.channelId, self, reaction.urlValue, user != nil ? "\(user!.id)" : "@me")
+        ).map { _ in }
     }
 
     public func mentions(_ entity: Snowflakable) -> Bool {
         return self.mentions.sContains(entity) || self.mentionRoles.sContains(entity)
+    }
+}
+
+internal extension Message {
+    func setClient(_ msg: Message) -> Message {
+        msg.client = self.client
+        return msg
     }
 }
 
@@ -212,12 +240,4 @@ extension String {
     var isSingleEmoji: Bool { count == 1 && containsEmoji }
 
     var containsEmoji: Bool { contains { $0.isEmoji } }
-
-    var containsOnlyEmoji: Bool { !isEmpty && !contains { !$0.isEmoji } }
-
-    var emojiString: String { emojis.map { String($0) }.reduce("", +) }
-
-    var emojis: [Character] { filter { $0.isEmoji } }
-
-    var emojiScalars: [UnicodeScalar] { filter { $0.isEmoji }.flatMap { $0.unicodeScalars } }
 }

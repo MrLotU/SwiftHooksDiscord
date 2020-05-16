@@ -1,3 +1,7 @@
+public struct GatewayResponse: Codable {
+    let url: String
+}
+
 public struct GatewayBotResponse: Codable {
     public let url: String
     public let shards: Int

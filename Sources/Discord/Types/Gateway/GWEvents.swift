@@ -10,6 +10,12 @@ public struct GatewayHello: DiscordGatewayType, DiscordHandled {
         case heartbeatInterval = "heartbeat_interval"
         case trace = "_trace"
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct GatewayReady: DiscordGatewayType, DiscordHandled {
@@ -27,6 +33,12 @@ public struct GatewayReady: DiscordGatewayType, DiscordHandled {
         case sessionId = "session_id"
         case trace = "_trace"
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct GatewayResumed: DiscordGatewayType, DiscordHandled {
@@ -35,6 +47,12 @@ public struct GatewayResumed: DiscordGatewayType, DiscordHandled {
     
     enum CodingKeys: String, CodingKey {
         case trace = "_trace"
+    }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
     }
 }
 
@@ -48,6 +66,12 @@ public struct GatewayChannelPinsUpdate: DiscordGatewayType, DiscordHandled {
         case channelId = "channel_id"
         case lastPinTimestamp = "last_pin_timestamp"
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 // MARK: - Guild
@@ -60,6 +84,12 @@ public struct GatewayGuildBanEvent: DiscordGatewayType, DiscordHandled {
         case guildId = "guild_id"
         case user
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct GatewayGuildEmojisUpdate: DiscordGatewayType, DiscordHandled {
@@ -71,6 +101,12 @@ public struct GatewayGuildEmojisUpdate: DiscordGatewayType, DiscordHandled {
         case guildId = "guild_id"
         case emojis
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct GatewayGuildIntegrationsUpdate: DiscordGatewayType, DiscordHandled {
@@ -79,6 +115,12 @@ public struct GatewayGuildIntegrationsUpdate: DiscordGatewayType, DiscordHandled
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id"
+    }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
     }
 }
 
@@ -91,6 +133,12 @@ public internal(set) var client: DiscordClient!
         case guildId = "guild_id"
         case user
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct GatewayGuildMemberUpdate: DiscordGatewayType, DiscordHandled {
@@ -98,11 +146,17 @@ public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let roles: [Snowflake]
     public let user: User
-    public let nick: String
+    public let nick: String?
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id"
         case roles, user, nick
+    }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
     }
 }
 
@@ -115,6 +169,12 @@ public internal(set) var client: DiscordClient!
         case guildId = "guild_id"
         case members
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct GatewayGuildRoleEvent: DiscordGatewayType, DiscordHandled {
@@ -126,6 +186,12 @@ public internal(set) var client: DiscordClient!
         case guildId = "guild_id"
         case role
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct GatewayGuildRoleDelete: DiscordGatewayType, DiscordHandled {
@@ -135,6 +201,12 @@ public internal(set) var client: DiscordClient!
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id", roleId = "role_id"
+    }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
     }
 }
 
@@ -149,6 +221,12 @@ public internal(set) var client: DiscordClient!
         case id
         case channelId = "channel_id", guildId = "guild_id"
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct GatewayMessageDeleteBulk: DiscordGatewayType, DiscordHandled {
@@ -160,6 +238,12 @@ public internal(set) var client: DiscordClient!
     enum CodingKeys: String, CodingKey {
         case ids
         case channelId = "channel_id", guildId = "guild_id"
+    }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
     }
 }
 
@@ -176,16 +260,28 @@ public internal(set) var client: DiscordClient!
         case messageId = "message_id", guildId = "guild_id"
         case emoji
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct GatewayMessageReactionRemoveAll: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let channelId: Snowflake
     public let messageId: Snowflake
     public let guildId: Snowflake
     
     enum CodingKeys: String, CodingKey {
         case channelId = "channel_id", messageId = "message_id", guildId = "guild_id"
+    }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
     }
 }
 
@@ -217,6 +313,12 @@ public internal(set) var client: DiscordClient!
         case clientStatus = "client_status"
         case premiumSince = "premium_since"
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 public struct ClientStatus: Codable {
@@ -236,6 +338,12 @@ public internal(set) var client: DiscordClient!
         case channelId = "channel_id", guildId = "guild_id", userId = "user_id"
         case timestamp
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 // MARK: - Voice
@@ -249,6 +357,12 @@ public internal(set) var client: DiscordClient!
         case token, endpoint
         case guildId = "guild_id"
     }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
+    }
 }
 
 // MARK: - Webhooks
@@ -259,5 +373,11 @@ public internal(set) var client: DiscordClient!
     
     enum CodingKeys: String, CodingKey {
         case guildId = "guild_id", channelId = "channel_id"
+    }
+    
+    func copyWith(_ client: DiscordClient) -> Self {
+        var x = self
+        x.client = client
+        return x
     }
 }

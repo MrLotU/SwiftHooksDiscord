@@ -23,6 +23,26 @@ public struct VoiceState: Codable, DiscordHandled {
         case member, sessionId = "session_id", deaf, mute, selfDeaf = "self_deaf"
         case selfMute = "self_mute", selfStream = "self_stream", suppress
     }
+    
+    func copyWith(_ client: DiscordClient) -> VoiceState {
+        var x = VoiceState(guildId: guildId, channelId: channelId, userId: userId, member: member, sessionId: sessionId, deaf: deaf, mute: mute, selfDeaf: selfDeaf, selfMute: selfMute, selfStream: selfStream, suppress: suppress)
+        x.client = client
+        return x
+    }
+    
+    fileprivate init(guildId: Snowflake?, channelId: Snowflake?, userId: Snowflake, member: GuildMember?, sessionId: String, deaf: Bool, mute: Bool, selfDeaf: Bool, selfMute: Bool, selfStream: Bool?, suppress: Bool) {
+        self.guildId = guildId
+        self.channelId = channelId
+        self.userId = userId
+        self.member = member
+        self.sessionId = sessionId
+        self.deaf = deaf
+        self.mute = mute
+        self.selfDeaf = selfDeaf
+        self.selfMute = selfMute
+        self.selfStream = selfStream
+        self.suppress = suppress
+    }
 }
 
 public struct VoiceRegion: Codable {

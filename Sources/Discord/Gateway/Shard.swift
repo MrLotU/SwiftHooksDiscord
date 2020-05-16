@@ -9,7 +9,7 @@ fileprivate let ZlibSuffix: Bytes = [0x0, 0x0, 0xFF, 0xFF]
 /// A shard is a single connection to the Discord Gateway
 ///
 /// A bot can have multiple shards to spread the load
-final class Shard: GatewayClient {
+final class Shard {
     var logger: Logger
     var ackMissed: Int {
         didSet {
@@ -148,11 +148,7 @@ final class Shard: GatewayClient {
     func send<T: Codable>(_ payload: GatewayPayload<T>) {
         do {
             let data = try SwiftHooks.encoder.encode(payload)
-            let prom = self.elg.next().makePromise(of: Void.self)
-            socket?.send(raw: data, opcode: .binary, promise: prom)
-            prom.futureResult.whenFailure { (err) in
-                self.logger.error("Error sending data: \(err.localizedDescription)")
-            }
+            socket?.send(raw: data, opcode: .binary)
         } catch {
             self.logger.error("Error sending data: \(error.localizedDescription)")
         }

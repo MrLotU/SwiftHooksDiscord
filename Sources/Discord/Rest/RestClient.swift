@@ -42,71 +42,18 @@ public final class DiscordRESTClient {
         return ["Authorization": "Bot \(token)"]
     }
     
-    /// Executes a route without body
-    ///
-    ///     let data = client.execute(.GatewayBotGet)
-    ///
-    /// - parameters:
-    ///     - route: Route to execute
-    ///
-    /// - returns: A future R
-    public func execute<R>(_ route: Route) -> EventLoopFuture<R> where R: Decodable {
-        let urlReq = URLRequest(route.url, method: route.method, headers: headers)
-        
-        return session.jsonBody(urlReq, type: R.self, on: eventLoop)
-    }
-    
-    /// Executes a route with a body
-    ///
-    ///     let message = client.execute(.ChannelMessagesCreate(channelId), MessageCreatePayload(...))
-    ///
-    /// - parameters:
-    ///     - route: Route to execute
-    ///     - body: Body to send
-    ///
-    /// - returns: A future R
-    public func execute<B, R>(_ route: Route, _ body: B) -> EventLoopFuture<R> where B: Encodable, R: Decodable {
-        do {
-            let urlReq = try URLRequest(url: route.url, method: route.method, headers: headers, json: body)
+    public func execute<B, Q, R>(_ route: Route<B, Q, R>) -> EventLoopFuture<R> {
+        let p = self.eventLoop.makePromise(of: R.self)
+        return executeAndCascade(p) {
+            let urlReq = try URLRequest(url: route.url, method: route.method, headers: self.headers, json: route.body)
             
-            return session.jsonBody(urlReq, type: R.self, on: eventLoop)
-        } catch {
-            return eventLoop.makeFailedFuture(error)
+            return self.session.jsonBody(urlReq, on: self.eventLoop)
         }
     }
     
-    /// Executes a route without body and an empty response
-    ///
-    ///     client.execute(.UserGuildLeave(guildId))
-    ///
-    /// - parameters:
-    ///     - route: Route to execute
-    ///
-    /// - returns: Discardable EventLoopFuture<Empty>
-    @discardableResult
-    public func execute(_ route: Route) -> EventLoopFuture<Empty> {
-        let urlReq = URLRequest(route.url, method: route.method, headers: headers)
+    public func execute<Q, R>(_ route: Route<Empty, Q, R>) -> EventLoopFuture<R> {
+        let urlReq = URLRequest(route.url, method: route.method, headers: self.headers)
         
-        return session.jsonBody(urlReq, type: Empty.self, on: eventLoop)
-    }
-    
-    /// Executes a route with a body and an empty response
-    ///
-    ///     client.execute(.ChannelMessagesCreate(channelId), MessageCreatePayload(...))
-    ///
-    /// - parameters:
-    ///     - route: Route to execute
-    ///     - body: Body to send
-    ///
-    /// - returns: Discardable EventLoopFuture<Empty>
-    @discardableResult
-    public func execute<B>(_ route: Route, _ body: B) -> EventLoopFuture<Empty> where B: Encodable {
-        do {
-            let urlReq = try URLRequest(url: route.url, method: route.method, headers: headers, json: body)
-            
-            return session.jsonBody(urlReq, type: Empty.self, on: eventLoop)
-        } catch {
-            return eventLoop.makeFailedFuture(error)
-        }
+        return session.jsonBody(urlReq, on: eventLoop)
     }
 }

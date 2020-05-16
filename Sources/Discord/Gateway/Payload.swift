@@ -4,6 +4,8 @@ import protocol NIO.EventLoop
 public protocol DiscordGatewayType: PayloadType, Encodable { }
 protocol DiscordHandled {
     var client: DiscordClient! { get set }
+    
+    func copyWith(_ client: DiscordClient) -> Self
 }
 public extension DiscordGatewayType {
     static func create(from data: Data, on h: _Hook, on eventLoop: EventLoop) -> Self? {

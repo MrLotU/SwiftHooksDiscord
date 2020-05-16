@@ -1,4 +1,6 @@
-public class GuildMember: DiscordGatewayType, DiscordHandled {
+import NIO
+
+public final class GuildMember: DiscordGatewayType, DiscordHandled {
     public internal(set) var client: DiscordClient! {
         didSet {
             self.user?.client = client
@@ -17,6 +19,31 @@ public class GuildMember: DiscordGatewayType, DiscordHandled {
         case user, nick, roles, joinedAt = "joined_at"
         case premiumSince = "premium_since", isDeafened = "deaf", isMuted = "mute", guildId = "guild_id"
     }
+    
+    func copyWith(_ client: DiscordClient) -> GuildMember {
+        let x = GuildMember(user: user, nick: nick, roles: roles, joinedAt: joinedAt, premiumSince: premiumSince, isDeafened: isDeafened, isMuted: isMuted, guildId: guildId)
+        x.client = client
+        return x
+    }
+    
+    internal init(user: User?, nick: String?, roles: [Snowflake], joinedAt: String, premiumSince: String?, isDeafened: Bool, isMuted: Bool, guildId: Snowflake? = nil) {
+        self.user = user
+        self.nick = nick
+        self.roles = roles
+        self.joinedAt = joinedAt
+        self.premiumSince = premiumSince
+        self.isDeafened = isDeafened
+        self.isMuted = isMuted
+        self.guildId = guildId
+    }
+    
+    
+    public lazy var guild: Guild = {
+        // If we get a GuildMember without a guild, something went wrong bigtime
+        // so the crash in here is "ok"
+        guard let gId = self.guildId else { fatalError() }
+        return self.client.state.guilds[gId]!
+    }()
 }
 
 extension GuildMember: Snowflakable {
@@ -40,42 +67,42 @@ extension GuildMember {
         return nick ?? user.username
     }
     
-    public func kick() {
-        client.rest.execute(.GuildMembersRemove(guild.id, id))
+    public func kick() -> EventLoopFuture<Void> {
+        client.rest.execute(.GuildMembersRemove(guild.id, id)).toVoidFuture()
     }
     
-    public func ban() throws {
-        try guild.ban(self)
+    public func ban() -> EventLoopFuture<Void> {
+        guild.ban(self)
     }
     
-    public func unban() throws {
-        try guild.unban(self)
+    public func unban() -> EventLoopFuture<Void> {
+        guild.unban(self)
     }
     
-    public func setNickname(_ nick: String) {
+    public func setNickname(_ nick: String) -> EventLoopFuture<Void> {
         if self.client.state.me.id == self.user.id {
-            self.client.rest.execute(.GuildMembersModifyNickMe(id), ModifyNickMePayload(nick: nick))
+            return self.client.rest.execute(.GuildMembersModifyNickMe(guild.id, ModifyNickMePayload(nick: nick))).toVoidFuture()
         } else {
             let p = ModifyGuildMemberPayload.init(nick: nick, roles: nil, mute: nil, deaf: nil, channel_id: nil)
-            self.client.rest.execute(.GuildMembersModify(guild.id, id), p)
+            return self.client.rest.execute(.GuildMembersModify(guild.id, id, p)).toVoidFuture()
         }
     }
     
-    public func clearNickname() {
-        self.setNickname("")
+    public func clearNickname() -> EventLoopFuture<Void> {
+        self.setNickname("").toVoidFuture()
     }
     
-    public func modify(roles: [GuildRole]? = nil, isMuted: Bool? = nil, isDeafened: Bool? = nil, voiceChannel: Snowflake? = nil) {
+    public func modify(roles: [GuildRole]? = nil, isMuted: Bool? = nil, isDeafened: Bool? = nil, voiceChannel: Snowflake? = nil) -> EventLoopFuture<Void> {
         let p = ModifyGuildMemberPayload.init(nick: nil, roles: roles?.map(\.id), mute: isMuted, deaf: isDeafened, channel_id: voiceChannel)
-        self.client.rest.execute(.GuildMembersModify(guild.id, id), p)
+        return self.client.rest.execute(.GuildMembersModify(guild.id, id, p)).toVoidFuture()
     }
 
-    public func addRole(_ role: GuildRole) {
-        self.client.rest.execute(.GuildMembersRoleAdd(guild.id, id, role.id))
+    public func addRole(_ role: GuildRole) -> EventLoopFuture<Void> {
+        self.client.rest.execute(.GuildMembersRoleAdd(guild.id, id, role.id)).toVoidFuture()
     }
 
-    public func removeRole(_ role: GuildRole) {
-        self.client.rest.execute(.GuildMembersRoleRemove(guild.id, id, role.id))
+    public func removeRole(_ role: GuildRole) -> EventLoopFuture<Void> {
+        self.client.rest.execute(.GuildMembersRoleRemove(guild.id, id, role.id)).toVoidFuture()
     }
 
     public var isOwner: Bool {
@@ -95,12 +122,5 @@ extension GuildMember {
     
     public var permissions: Permissions {
         self.guild.getPermissions(for: self)
-    }
-    
-    public var guild: Guild {
-        // If we get a GuildMember without a guild, something went wrong bigtime
-        // so the crash in here is "ok"
-        guard let gId = self.guildId else { fatalError() }
-        return self.client.state.guilds[gId]!
     }
 }

@@ -145,3 +145,12 @@ extension URLRequest {
         httpMethod = method.rawValue
     }
 }
+
+func executeAndCascade<T>(_ p: EventLoopPromise<T>, _ closure: @escaping (() throws -> EventLoopFuture<T>)) -> EventLoopFuture<T> {
+    do {
+        try closure().cascade(to: p)
+    } catch {
+        p.fail(error)
+    }
+    return p.futureResult
+}

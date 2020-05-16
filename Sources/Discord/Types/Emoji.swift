@@ -50,7 +50,7 @@ extension Emoji: Snowflakable {
 
 extension Emoji {
     public var url: String {
-        return "https://discordapp.com/api/emojis/\(name).\(isAnimated ?? false ? "gif" : "png")"
+        return "https://discord.com/api/emojis/\(name).\(isAnimated ?? false ? "gif" : "png")"
     }
 }
 

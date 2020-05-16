@@ -8,7 +8,7 @@ public enum UserStatus: String, Codable {
 
 public typealias User = Discord.User
 public extension Discord {
-    class User: DiscordGatewayType, DiscordHandled {
+    final class User: DiscordGatewayType, DiscordHandled {
         public internal(set) var client: DiscordClient!
         
         public let id: Snowflake
@@ -39,6 +39,28 @@ public extension Discord {
             case flags
             case premiumType = "premium_type"
             case publicFlags = "public_flags"
+        }
+        
+        func copyWith(_ client: DiscordClient) -> User {
+            let x = User(id: id, username: username, discriminator: discriminator, avatar: avatar, isBot: isBot, isSystem: isSystem, locale: locale, mfaEnabled: mfaEnabled, isVerified: isVerified, email: email, flags: flags, premiumType: premiumType, publicFlags: publicFlags)
+            x.client = client
+            return x
+        }
+        
+        internal init(id: Snowflake, username: String, discriminator: String, avatar: String?, isBot: Bool?, isSystem: Bool?, locale: String?, mfaEnabled: Bool?, isVerified: Bool?, email: String?, flags: Int?, premiumType: PremiumType?, publicFlags: UserFlags?) {
+            self.id = id
+            self.username = username
+            self.discriminator = discriminator
+            self.avatar = avatar
+            self.isBot = isBot
+            self.isSystem = isSystem
+            self.locale = locale
+            self.mfaEnabled = mfaEnabled
+            self.isVerified = isVerified
+            self.email = email
+            self.flags = flags
+            self.premiumType = premiumType
+            self.publicFlags = publicFlags
         }
     }
 }
@@ -79,10 +101,10 @@ extension User: CommandArgumentConvertible {
         guard let snowflake = Snowflake(argument) else {
             throw CommandError.UnableToConvertArgument(argument, "\(self.self)")
         }
-        guard let user = event.discord?.state.users[snowflake] else {
+        guard let discord = event.discord, let user = discord.state.users[snowflake] else {
             throw CommandError.ArgumentNotFound(argument)
         }
-        return user
+        return user.copyWith(discord)
     }
 }
 
@@ -95,9 +117,9 @@ extension User: Snowflakable {
 extension User {
     public func getAvatarUrl(format: String = "webp", size: Int = 1024) -> String {
         guard let avatar = avatar else {
-            return "https://cdn.discordapp.com/embed/avatars/\(Int(discriminator) ?? 0 % 5).png"
+            return "https://cdn.discord.com/embed/avatars/\(Int(discriminator) ?? 0 % 5).png"
         }
-        return "https://cdn.discordapp.com/avatars/\(id)/\(avatar).\(format)?size=\(size)"
+        return "https://cdn.discord.com/avatars/\(id)/\(avatar).\(format)?size=\(size)"
     }
     
     public var avatarUrl: String {
