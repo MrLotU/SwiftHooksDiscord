@@ -1,6 +1,25 @@
+import Foundation
+
 public struct ModifyUserPayload: Codable {
     public let username: String
     public let avatar: String?
+}
+
+public struct UserGuildsMeQuery: QueryItemConvertible {
+    public let before: Snowflake?
+    public let after: Snowflake?
+    public let limit: Int?
+    
+    public func toQueryItems() -> [URLQueryItem] {
+        var arr = [
+            URLQueryItem(name: "before", value: before?.asString),
+            URLQueryItem(name: "after", value: after?.asString)
+        ]
+        if let l = limit {
+            arr.append(URLQueryItem(name: "limit", value: "\(l)"))
+        }
+        return arr
+    }
 }
 
 public struct CreateDMPayload: Codable {

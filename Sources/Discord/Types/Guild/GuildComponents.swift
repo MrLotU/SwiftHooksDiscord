@@ -1,3 +1,5 @@
+import Foundation
+
 public struct ModifyGuildPayload: Codable {
     public let name: String?
     public let region: String?
@@ -99,6 +101,25 @@ public struct ModifyRolePayload: Codable {
     public let mentionable: Bool?
 }
 
+public struct GuildPruneQuery: QueryItemConvertible {
+    public let days: Int?
+    public let includeRoles: [Snowflake]?
+    public let computePruneCount: Bool?
+    
+    public func toQueryItems() -> [URLQueryItem] {
+        var arr = [
+            URLQueryItem(name: "include-roles", value: includeRoles?.map(\.asString).joined(separator: ",")),
+        ]
+        if let c = computePruneCount {
+            arr.append(.init(name: "compute-prune-count", value: "\(c)"))
+        }
+        if let d = days {
+            arr.append(.init(name: "days", value: "\(d)"))
+        }
+        return arr
+    }
+}
+
 public struct GuildPruneResult: Codable {
     public let pruned: Int?
 }
@@ -133,6 +154,27 @@ public struct UnavailableGuild: DiscordGatewayType, DiscordHandled {
 public struct GuildBan: Codable {
     public let reason: String?
     public let user: User
+}
+
+public struct GuildBanQuery: QueryItemConvertible {
+    public let deleteMessageDays: Int?
+    public let reason: String?
+    
+    public func toQueryItems() -> [URLQueryItem] {
+        var arr = [URLQueryItem(name: "reason", value: reason)]
+        if let d = deleteMessageDays {
+            arr.append(URLQueryItem(name: "delete-message-days", value: "\(d)"))
+        }
+        return arr
+    }
+}
+
+public struct GetGuildsQuery: QueryItemConvertible {
+    public let withCounts: Bool = false
+    
+    public func toQueryItems() -> [URLQueryItem] {
+        return [URLQueryItem(name: "with_counts", value: "\(withCounts)")]
+    }
 }
 
 public struct GuildPreview: Codable {

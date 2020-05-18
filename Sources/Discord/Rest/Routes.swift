@@ -116,7 +116,7 @@ extension Route {
         return MessageBase(chanId) + "/" + msgId.asString
     }
     
-    public static func ChannelMessagesList(_ id: Snowflakable, _ q: Todo) -> QueryRoute<Todo, [Message]> {
+    public static func ChannelMessagesList(_ id: Snowflakable, _ q: ChannelMessagesGetQuery) -> QueryRoute<ChannelMessagesGetQuery, [Message]> {
         return .init(.GET, MessageBase(id), q)
     }
     
@@ -144,7 +144,7 @@ extension Route {
         return MessageBase(chanId, msgId) + "/reactions/\(emoji)"
     }
     
-    public static func ChannelMessagesReactionsGet(_ chanId: Snowflakable, _ msgId: Snowflakable, _ emoji: String, _ q: Todo) -> QueryRoute<Todo, [User]> {
+    public static func ChannelMessagesReactionsGet(_ chanId: Snowflakable, _ msgId: Snowflakable, _ emoji: String, _ q: GetReactionsQuery) -> QueryRoute<GetReactionsQuery, [User]> {
         return .init(.GET, MessageReactionsBase(chanId, msgId, emoji), q)
     }
     
@@ -264,7 +264,7 @@ extension Route {
         return UserBaseMe + "/guilds"
     }
     
-    public static func UserGuildsMe(_ q: Todo) -> QueryRoute<Todo, [Guild]> {
+    public static func UserGuildsMe(_ q: UserGuildsMeQuery) -> QueryRoute<UserGuildsMeQuery, [Guild]> {
         return .init(.GET, UserGuildsBase, q)
     }
     
@@ -368,7 +368,7 @@ extension Route {
 //        return .init(.POST, GuildBase)
 //    }
     
-    public static func GuildGet(_ guildId: Snowflakable, _ q: Todo) -> QueryRoute<Todo, Guild> {
+    public static func GuildGet(_ guildId: Snowflakable, _ q: GetGuildsQuery) -> QueryRoute<GetGuildsQuery, Guild> {
         return .init(.GET, GuildBase(guildId), q)
     }
     
@@ -456,7 +456,7 @@ extension Route {
         return .init(.GET, GuildBansBase(guildId, userId))
     }
     
-    public static func GuildBansCreate(_ guildId: Snowflakable, _ userId: Snowflakable, _ q: Todo) -> QueryRoute<Todo, Empty> {
+    public static func GuildBansCreate(_ guildId: Snowflakable, _ userId: Snowflakable, _ q: GuildBanQuery) -> QueryRoute<GuildBanQuery, Empty> {
         return .init(.PUT, GuildBansBase(guildId, userId), q)
     }
     
@@ -496,11 +496,11 @@ extension Route {
         return GuildBase(guildId) + "/prune"
     }
     
-    public static func GuildPruneCount(_ guildId: Snowflakable, _ q: Todo) -> QueryRoute<Todo, GuildPruneResult> {
+    public static func GuildPruneCount(_ guildId: Snowflakable, _ q: GuildPruneQuery) -> QueryRoute<GuildPruneQuery, GuildPruneResult> {
         return .init(.GET, GuildPruneBase(guildId), q)
     }
     
-    public static func GuildPruneStart(_ guildId: Snowflakable, _ q: Todo) -> QueryRoute<Todo, GuildPruneResult> {
+    public static func GuildPruneStart(_ guildId: Snowflakable, _ q: GuildPruneQuery) -> QueryRoute<GuildPruneQuery, GuildPruneResult> {
         return .init(.POST, GuildPruneBase(guildId), q)
     }
     

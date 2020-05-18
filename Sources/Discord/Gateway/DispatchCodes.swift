@@ -121,9 +121,3 @@ public struct Empty: Codable, PayloadType, QueryItemConvertible {
         return []
     }
 }
-
-public struct Todo: QueryItemConvertible {
-    public func toQueryItems() -> [URLQueryItem] {
-        fatalError()
-    }
-}

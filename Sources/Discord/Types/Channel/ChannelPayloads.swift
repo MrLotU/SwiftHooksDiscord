@@ -1,3 +1,5 @@
+import Foundation
+
 public struct ModifyChannelPayload: Codable {
     public let name: String?
     public let position: Int?
@@ -13,6 +15,25 @@ public struct ModifyChannelPayload: Codable {
         case name, position, topic, bitrate
         case isNsfw = "nsfw", rateLimit = "rate_limit_per_user", userLimit = "user_limit"
         case permissionOverwrites = "permission_overwrites", parentId = "parent_id"
+    }
+}
+
+public struct ChannelMessagesGetQuery: QueryItemConvertible {
+    public let around: Snowflake?
+    public let before: Snowflake?
+    public let after: Snowflake?
+    public let limit: Int?
+    
+    public func toQueryItems() -> [URLQueryItem] {
+        var arr = [
+            URLQueryItem(name: "around", value: around?.asString),
+            URLQueryItem(name: "before", value: before?.asString),
+            URLQueryItem(name: "after", value: after?.asString)
+        ]
+        if let l = limit {
+            arr.append(.init(name: "limit", value: "\(l)"))
+        }
+        return arr
     }
 }
 
@@ -37,6 +58,23 @@ public struct MessageEditPayload: Codable {
 
 public struct BulkDeleteMessagesPayload: Codable {
     public let messages: [Snowflake]
+}
+
+public struct GetReactionsQuery: QueryItemConvertible {
+    public let before: Snowflake?
+    public let after: Snowflake?
+    public let limit: Int?
+    
+    public func toQueryItems() -> [URLQueryItem] {
+        var arr = [
+            URLQueryItem(name: "before", value: before?.asString),
+            URLQueryItem(name: "after", value: after?.asString)
+        ]
+        if let l = limit {
+            arr.append(URLQueryItem(name: "limit", value: "\(l)"))
+        }
+        return arr
+    }
 }
 
 public struct EditChannelPermissionsPayload: Codable {

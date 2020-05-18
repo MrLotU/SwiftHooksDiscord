@@ -157,12 +157,13 @@ extension Guild {
         return client.rest.execute(.GuildBansList(id))
     }
     
-    public func ban(_ member: Snowflakable) -> EventLoopFuture<Void> {
+    public func ban(_ member: Snowflakable, deleteMessagesDays: Int? = nil, reason: String? = nil) -> EventLoopFuture<Void> {
         guard member is GuildMember || member is User else {
             return client.eventLoop.makeFailedFuture(DiscordRestError.UnbannableInstance)
         }
         
-        return client.rest.execute(.GuildBansCreate(id, member.snowflakeDescription, Todo())).toVoidFuture()
+        let q = GuildBanQuery(deleteMessageDays: deleteMessagesDays, reason: reason)
+        return client.rest.execute(.GuildBansCreate(id, member.snowflakeDescription, q)).toVoidFuture()
     }
     
     public func unban(_ member: Snowflakable) -> EventLoopFuture<Void> {
