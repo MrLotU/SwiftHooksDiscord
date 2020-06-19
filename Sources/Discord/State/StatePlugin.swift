@@ -59,7 +59,11 @@ class StatePlugin: Plugin {
                 }
                 
                 Listener(Discord.guildMemberAdd) { e, member -> Void in
-                    e.state.users[member.user.id] = member.user
+                    if let u = e.state.users[member.user.id] {
+                        member.user = u
+                    } else {
+                        e.state.users[member.user.id] = member.user
+                    }
             
                     if let id = member.guildId, let guild = member.state.guilds[id] {
                         guild.members.append(member)
@@ -79,6 +83,18 @@ class StatePlugin: Plugin {
                 }
             }
             Listeners {
+                Listener(Discord.guildMemberRemove) { e, event -> Void in
+                    if let g = e.state.guilds[event.guildId] {
+                        g.members[event.user.id] = nil
+                    }
+                }
+                
+                Listener(Discord.messageCreate) { e, message -> Void in
+                    if let c = e.state.channels[message.channelId] {
+                        c.lastMessageId = message.id
+                    }
+                }
+                
                 Listener(Discord.guildRoleCreate) { e, event -> Void in
                     guard let guild = e.state.guilds[event.guildId] else { return }
                     guild.roles[event.role.id] = event.role

@@ -15,6 +15,6 @@ public struct GatewayBotResponse: Codable {
     public struct SessionStartLimit: Codable {
         public let total: Int
         public let remaining: Int
-        public let reset_after: Int
+        public let reset_after: Int64
     }
 }

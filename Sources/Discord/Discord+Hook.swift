@@ -7,15 +7,44 @@ extension DiscordHook {
         self.hooks = hooks
         self.register(StatePlugin())
         if let shardCount = self.options.sharding.totalShards, let shard = self.options.sharding.shardId {
-            self.sharder.shardCount = shardCount
-            self.sharder.spawn(shard, on: "wss://gateway.discord.gg", withToken: options.token, on: self.eventLoopGroup, handledBy: self)
+            self.singleShardBoot(shard, shardCount)
         } else {
-            let amountOfShards = 1
-            self.sharder.shardCount = amountOfShards
-            for i in 0..<amountOfShards {
-                self.sharder.spawn(i, on: "wss://gateway.discord.gg", withToken: options.token, on: self.eventLoopGroup, handledBy: self)
+            self.autoshardBoot()
+        }
+    }
+    
+    fileprivate func singleShardBoot(_ shard: Int, _ total: Int) {
+        self.rest.execute(.GatewayBotGet).whenSuccess { gwBot in
+            guard gwBot.sessionStartLimit.remaining >= 1 else {
+                self.logger.warning("Unable to start enough shards at this time. Will re-try in \(gwBot.sessionStartLimit.reset_after)ms.")
+                self.eventLoopGroup.next().scheduleTask(in: .milliseconds(gwBot.sessionStartLimit.reset_after)) {
+                    self.singleShardBoot(shard, total)
+                }
+                return
+            }
+            self.sharder.shardCount = total
+            self.sharder.spawn(shard, on: gwBot.url, withToken: self.options.token, on: self.eventLoopGroup, handledBy: self)
+        }
+    }
+    
+    fileprivate func autoshardBoot() {
+        self.rest.execute(.GatewayBotGet).whenSuccess { gwBot in
+            guard gwBot.sessionStartLimit.remaining >= gwBot.shards else {
+                self.logger.warning("Unable to start enough shards at this time. Will re-try in \(gwBot.sessionStartLimit.reset_after)ms.")
+                self.eventLoopGroup.next().scheduleTask(in: .milliseconds(gwBot.sessionStartLimit.reset_after)) {
+                    self.autoshardBoot()
+                }
+                return
+            }
+            self.sharder.shardCount = gwBot.shards
+            for i in 0..<gwBot.shards {
+                self.sharder.spawn(i, on: gwBot.url, withToken: self.options.token, on: self.eventLoopGroup, handledBy: self)
             }
         }
+    }
+    
+    public var user: Userable? {
+        return state.me
     }
     
     public func shutdown() {

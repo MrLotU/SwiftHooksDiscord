@@ -4,18 +4,18 @@ import NIO
 public final class Guild: DiscordGatewayType, DiscordHandled {
     public internal(set) var client: DiscordClient! {
         didSet {
-            for member in self.members {
+            for member in self.members ?? [] {
                 member.client = client
                 member.guildId = self.id
             }
-            for channel in self.channels {
+            for channel in self.channels ?? [] {
                 channel.client = client
             }
         }
     }
     
     public let id: Snowflake
-    public let name: String
+    public internal(set) var name: String
     public let icon: String?
     public let splash: String?
     public let discoverySplash: String?
@@ -42,10 +42,10 @@ public final class Guild: DiscordGatewayType, DiscordHandled {
     public let isLarge: Bool?
     public let isUnavailable: Bool?
     public let memberCount: Int?
-    public let voiceStates: [VoiceState]
-    public internal(set) var members: [GuildMember]
-    public internal(set) var channels: [Channel]
-    public let presences: [GatewayPresenceUpdate]
+    public let voiceStates: [VoiceState]!
+    public internal(set) var members: [GuildMember]!
+    public internal(set) var channels: [Channel]!
+    public let presences: [GatewayPresenceUpdate]!
     public let maxPresences: Int?
     public let maxMembers: Int?
     public let vanityUrlCode: String?
@@ -260,6 +260,7 @@ extension Guild {
         case banner = "BANNER"
         case publicDisabled = "PUBLIC_DISABLED"
         case welcomeScreenEnabled = "WELCOME_SCREEN_ENABLED"
+        case community = "COMMUNITY"
     }
     
     public struct SystemChannelFlags: OptionSet, Codable {

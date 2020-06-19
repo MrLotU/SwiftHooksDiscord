@@ -1,4 +1,5 @@
 import NIO
+import Logging
 import Foundation
 
 /// Custom URLSession errors
@@ -21,6 +22,7 @@ extension URLSession {
         _ request: URLRequest,
         on eventLoop: EventLoop,
         with promise: EventLoopPromise<(HTTPURLResponse, Data)>,
+        logger: Logger,
         _ retries: Int = 0)
     {
         let task = self.dataTask(with: request) { data, response, error in
@@ -34,15 +36,18 @@ extension URLSession {
                 return
             }
             
-            if response.statusCode == 429, let data = data, let limit = try? JSONDecoder().decode(RateLimit.self, from: data) {
-                // RATELIMITED :(
-                print("Ratelimited. Retrying in \(limit.retry_after)")
-                eventLoop.scheduleTask(in: .milliseconds(Int64(limit.retry_after))) {
-                    print("Retrying")
-                    self.data(request, on: eventLoop, with: promise, retries + 1)
-                }
+            guard retries < 5 else {
+                promise.fail(DiscordRestError.TooManyRetries)
+                return
             }
             
+            if response.statusCode == 429, let data = data, let limit = try? JSONDecoder().decode(RateLimit.self, from: data) {
+                logger.warning("Request received status 429 (ratelimited). Retrying. (This should not happen, check your clock sync)")
+                eventLoop.scheduleTask(in: .milliseconds(Int64(limit.retry_after))) {
+                    self.data(request, on: eventLoop, with: promise, logger: logger, retries + 1)
+                }
+                return
+            }
             
             promise.succeed((response, data ?? Data()))
         }
@@ -60,11 +65,12 @@ extension URLSession {
     /// - returns: A future HTTPURLResponse and the Data
     func data(
         _ request: URLRequest,
+        logger: Logger,
         on eventLoop: EventLoop) -> EventLoopFuture<(HTTPURLResponse, Data)>
     {
         let promise = eventLoop.makePromise(of: (HTTPURLResponse, Data).self)
         
-        self.data(request, on: eventLoop, with: promise)
+        self.data(request, on: eventLoop, with: promise, logger: logger)
         
         return promise.futureResult
     }
@@ -82,9 +88,10 @@ extension URLSession {
         _ request: URLRequest,
         type: T.Type = T.self,
         decoder: JSONDecoder = JSONDecoder(),
+        logger: Logger,
         on eventLoop: EventLoop) -> EventLoopFuture<(HTTPURLResponse, T)>
     {
-        return data(request, on: eventLoop)
+        return data(request, logger: logger, on: eventLoop)
             .flatMapThrowing {
                 if T.self is Empty.Type {
                     return ($0.0, Empty() as! T)
@@ -106,9 +113,10 @@ extension URLSession {
         _ request: URLRequest,
         type: T.Type = T.self,
         decoder: JSONDecoder = JSONDecoder(),
+        logger: Logger,
         on eventLoop: EventLoop) -> EventLoopFuture<T>
     {
-        return json(request, type: type, decoder: decoder, on: eventLoop)
+        return json(request, type: type, decoder: decoder, logger: logger, on: eventLoop)
             .map { $0.1 }
     }
 }
@@ -146,11 +154,10 @@ extension URLRequest {
     }
 }
 
-func executeAndCascade<T>(_ p: EventLoopPromise<T>, _ closure: @escaping (() throws -> EventLoopFuture<T>)) -> EventLoopFuture<T> {
+func executeAndCascade<T>(_ p: EventLoopPromise<T>, _ closure: @escaping (() throws -> EventLoopFuture<T>)) {
     do {
         try closure().cascade(to: p)
     } catch {
         p.fail(error)
     }
-    return p.futureResult
 }

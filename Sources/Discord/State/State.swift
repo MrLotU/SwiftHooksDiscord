@@ -6,8 +6,8 @@ public final class State {
     private var _channels: [Channel]
     private var _guilds: [Guild]
     
-    private var _dms: [Snowflake: Channel]
-    private var _users: [Snowflake: User]
+    private var _dms: [Channel]
+    private var _users: [User]
     
     private var _me: User!
     
@@ -15,8 +15,8 @@ public final class State {
         self.lock = Lock()
         self._channels = []
         self._guilds = []
-        self._dms = [:]
-        self._users = [:]
+        self._dms = []
+        self._users = []
         self._me = nil
     }
 }
@@ -40,7 +40,7 @@ public extension State {
         }
     }
     
-    internal(set) var dms: [Snowflake: Channel] {
+    internal(set) var dms: [Channel] {
         get {
             self.lock.withLock { self._dms }
         }
@@ -49,7 +49,7 @@ public extension State {
         }
     }
     
-    internal(set) var users: [Snowflake: User] {
+    internal(set) var users: [User] {
         get {
             self.lock.withLock { self._users }
         }

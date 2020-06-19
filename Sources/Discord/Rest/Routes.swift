@@ -9,8 +9,12 @@ public typealias QueryRoute<Q: QueryItemConvertible, R: Decodable> = Route<Empty
 public typealias BodyRoute<B: Encodable, R: Decodable> = Route<B, Empty, R>
 public typealias EmptyRoute = Route<Empty, Empty, Empty>
 
+protocol AnyRoute {
+    var bucket: String { get }
+}
+
 /// Holds all info required to execute a route on the Discord REST API
-public struct Route<B: Encodable, Q: QueryItemConvertible, R: Decodable> {
+public struct Route<B: Encodable, Q: QueryItemConvertible, R: Decodable>: AnyRoute {
     /// Method of the route
     let method: HTTPMethod
     /// Endpoint of the route
@@ -19,6 +23,9 @@ public struct Route<B: Encodable, Q: QueryItemConvertible, R: Decodable> {
     /// Discord API base URL
     private let baseURL = "https://discord.com/api/v7"
     
+    /// Used for API Ratelimiting
+    internal let bucket: String
+        
     let body: B
     
     let query: Q
@@ -26,43 +33,80 @@ public struct Route<B: Encodable, Q: QueryItemConvertible, R: Decodable> {
     /// URL to route to
     var url: URL {
         var comps = URLComponents(string: baseURL + (endpoint.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? endpoint))
-        comps?.queryItems = query.toQueryItems().isEmpty ? nil : query.toQueryItems()
+        let items = query.toQueryItems()
+        comps?.queryItems = items.isEmpty ? nil : items
         return comps!.url!
     }
     
     /// Creates a new Route
+    init(_ method: HTTPMethod, _ endpoint: String, _ b: B, _ q: Q, _ bucket: String) {
+        self.method = method
+        self.endpoint = endpoint
+        self.body = b
+        self.query = q
+        self.bucket = bucket
+    }
+    
     init(_ method: HTTPMethod, _ endpoint: String, _ b: B, _ q: Q) {
         self.method = method
         self.endpoint = endpoint
         self.body = b
         self.query = q
+        self.bucket = endpoint
     }
 }
 
 extension Route where Q == Empty {
+    init(_ method: HTTPMethod, _ endpoint: String, _ b: B, _ bucket: String) {
+        self.method = method
+        self.endpoint = endpoint
+        self.body = b
+        self.query = Empty()
+        self.bucket = bucket
+    }
+    
     init(_ method: HTTPMethod, _ endpoint: String, _ b: B) {
         self.method = method
         self.endpoint = endpoint
         self.body = b
         self.query = Empty()
+        self.bucket = endpoint
     }
 }
 
 extension Route where B == Empty {
+    init(_ method: HTTPMethod, _ endpoint: String, _ q: Q, _ bucket: String) {
+        self.method = method
+        self.endpoint = endpoint
+        self.body = Empty()
+        self.query = q
+        self.bucket = bucket
+    }
+    
     init(_ method: HTTPMethod, _ endpoint: String, _ q: Q) {
         self.method = method
         self.endpoint = endpoint
         self.body = Empty()
         self.query = q
+        self.bucket = endpoint
     }
 }
 
 extension Route where B == Empty, Q == Empty {
+    init(_ method: HTTPMethod, _ endpoint: String, _ bucket: String) {
+        self.method = method
+        self.endpoint = endpoint
+        self.body = Empty()
+        self.query = Empty()
+        self.bucket = bucket
+    }
+    
     init(_ method: HTTPMethod, _ endpoint: String) {
         self.method = method
         self.endpoint = endpoint
         self.body = Empty()
         self.query = Empty()
+        self.bucket = endpoint
     }
 }
 
@@ -121,7 +165,7 @@ extension Route {
     }
     
     public static func ChannelMessagesGet(_ chanId: Snowflakable, _ msgId: Snowflakable) -> BasicRoute<Message> {
-        return .init(.GET, MessageBase(chanId, msgId))
+        return .init(.GET, MessageBase(chanId, msgId), MessageBase(chanId, emptyFlake))
     }
     
     public static func ChannelMessagesCreate(_ chanId: Snowflakable, _ b: MessageCreatePayload) -> BodyRoute<MessageCreatePayload, Message> {
@@ -129,11 +173,11 @@ extension Route {
     }
     
     public static func ChannelMessagesModify(_ chanId: Snowflakable, _ msgId: Snowflakable, _ b: MessageEditPayload) -> BodyRoute<MessageEditPayload, Message> {
-        return .init(.PATCH, MessageBase(chanId, msgId), b)
+        return .init(.PATCH, MessageBase(chanId, msgId), b, MessageBase(chanId, emptyFlake))
     }
     
     public static func ChannelMessagesDelete(_ chanId: Snowflakable, _ msgId: Snowflakable) -> EmptyRoute {
-        return .init(.DELETE, MessageBase(chanId, msgId))
+        return .init(.DELETE, MessageBase(chanId, msgId), MessageBase(chanId, emptyFlake))
     }
     
     public static func ChannelMessagesDeleteBulk(_ chanId: Snowflakable, _ b: BulkDeleteMessagesPayload) -> BodyRoute<BulkDeleteMessagesPayload, Empty> {
@@ -145,19 +189,19 @@ extension Route {
     }
     
     public static func ChannelMessagesReactionsGet(_ chanId: Snowflakable, _ msgId: Snowflakable, _ emoji: String, _ q: GetReactionsQuery) -> QueryRoute<GetReactionsQuery, [User]> {
-        return .init(.GET, MessageReactionsBase(chanId, msgId, emoji), q)
+        return .init(.GET, MessageReactionsBase(chanId, msgId, emoji), q, MessageReactionsBase(chanId, emptyFlake, ""))
     }
     
     public static func ChannelMessagesReactionsCreate(_ chanId: Snowflakable, _ msgId: Snowflakable, _ emoji: String) -> EmptyRoute {
-        return .init(.PUT, MessageReactionsBase(chanId, msgId, emoji) + "/@me")
+        return .init(.PUT, MessageReactionsBase(chanId, msgId, emoji) + "/@me", MessageReactionsBase(chanId, emptyFlake, "/@me"))
     }
     
     public static func ChannelMessagesReactionsDelete(_ chanId: Snowflakable, _ msgId: Snowflakable, _ emoji: String, _ userId: String = "@me") -> EmptyRoute {
-        return .init(.DELETE, MessageReactionsBase(chanId, msgId, emoji) + "/\(userId)")
+        return .init(.DELETE, MessageReactionsBase(chanId, msgId, emoji) + "/\(userId)", MessageReactionsBase(chanId, emptyFlake, "/"))
     }
     
     public static func ChannelMessagesReactionsDelete(_ chanId: Snowflakable, _ msgId: Snowflakable) -> EmptyRoute {
-        return .init(.DELETE, MessageBase(chanId, msgId) + "/reactions")
+        return .init(.DELETE, MessageBase(chanId, msgId) + "/reactions", MessageBase(chanId, emptyFlake) + "/reactions")
     }
     
     private static func ChannelPermissionsBase(_ chanId: Snowflakable, _ permId: String) -> String {
@@ -165,11 +209,11 @@ extension Route {
     }
     
     public static func ChannelPermissionsEdit(_ chanId: Snowflakable, _ permId: String, _ b: EditChannelPermissionsPayload) -> BodyRoute<EditChannelPermissionsPayload, Empty> {
-        return .init(.PUT, ChannelPermissionsBase(chanId, permId), b)
+        return .init(.PUT, ChannelPermissionsBase(chanId, permId), b, ChannelPermissionsBase(chanId, ""))
     }
     
     public static func ChannelPermissionsDelete(_ chanId: Snowflakable, _ permId: String) -> EmptyRoute {
-        return .init(.DELETE, ChannelPermissionsBase(chanId, permId))
+        return .init(.DELETE, ChannelPermissionsBase(chanId, permId), ChannelPermissionsBase(chanId, ""))
     }
     
     private static func ChannelInvitesBase(_ chanId: Snowflakable) -> String {
@@ -192,12 +236,16 @@ extension Route {
         return .init(.GET, ChannelPinsBase(chanId))
     }
     
+    private static func ChannelsPinsMessage(_ chanId: Snowflakable, _ msgId: Snowflakable) -> String {
+        return ChannelPinsBase(chanId) + "/\(msgId.asString)"
+    }
+    
     public static func ChannelsPinsAdd(_ chanId: Snowflakable, _ msgId: Snowflakable) -> EmptyRoute {
-        return .init(.PUT, ChannelPinsBase(chanId) + "/\(msgId)")
+        return .init(.PUT, ChannelsPinsMessage(chanId, msgId), ChannelsPinsMessage(chanId, emptyFlake))
     }
     
     public static func ChannelsPinsDelete(_ chanId: Snowflakable, _ msgId: Snowflakable) -> EmptyRoute {
-        return .init(.DELETE, ChannelPinsBase(chanId) + "/\(msgId)")
+        return .init(.DELETE, ChannelsPinsMessage(chanId, msgId), ChannelsPinsMessage(chanId, emptyFlake))
     }
     
     private static func ChannelsGroupDMBase(_ chanId: Snowflakable) -> String {
@@ -205,11 +253,11 @@ extension Route {
     }
     
     public static func ChannelGroupDMRecipientsAdd(_ chanId: Snowflakable, _ userId: Snowflakable, _ b: GroupDMRecipientAddPayload) -> BodyRoute<GroupDMRecipientAddPayload, Empty> {
-        return .init(.PUT, ChannelsGroupDMBase(chanId) + "/\(userId)", b)
+        return .init(.PUT, ChannelsGroupDMBase(chanId) + "/\(userId)", b, ChannelsGroupDMBase(chanId))
     }
     
     public static func ChannelGroupDMRecipientsDelete(_ chanId: Snowflakable, _ userId: Snowflakable) -> EmptyRoute {
-        return .init(.DELETE, ChannelsGroupDMBase(chanId) + "/\(userId)")
+        return .init(.DELETE, ChannelsGroupDMBase(chanId) + "/\(userId)", ChannelsGroupDMBase(chanId))
     }
 }
 
@@ -229,11 +277,11 @@ extension Route {
     }
     
     public static func InvitesGet(_ inviteCode: String) -> BasicRoute<Invite> {
-        return .init(.GET, InvitesBase(inviteCode))
+        return .init(.GET, InvitesBase(inviteCode), InvitesBase(""))
     }
     
     public static func InvitesDelete(_ inviteCode: String) -> BasicRoute<Invite> {
-        return .init(.DELETE, InvitesBase(inviteCode))
+        return .init(.DELETE, InvitesBase(inviteCode), InvitesBase(""))
     }
 }
 
@@ -253,7 +301,7 @@ extension Route {
     }
     
     public static func UserGet(_ userId: Snowflakable) -> BasicRoute<User> {
-        return .init(.GET, UserBase + "/" + userId.asString)
+        return .init(.GET, UserBase + "/" + userId.asString, UserBaseMe)
     }
     
     public static func ModifyUserMe(_ b: ModifyUserPayload) -> BodyRoute<ModifyUserPayload, User> {
@@ -405,7 +453,7 @@ extension Route {
     }
     
     public static func GuildMembersGet(_ guildId: Snowflakable, _ userId: Snowflakable) -> BasicRoute<GuildMember> {
-        return .init(.GET, GuildMembersBase(guildId, userId))
+        return .init(.GET, GuildMembersBase(guildId, userId), GuildMembersBase(guildId, emptyFlake))
     }
     
     public static func GuildMembersList(_ guildId: Snowflakable) -> BasicRoute<[GuildMember]> {
@@ -413,15 +461,15 @@ extension Route {
     }
     
     public static func GuildMembersAdd(_ guildId: Snowflakable, _ userId: Snowflakable, _ b: AddGuildMemberPayload) -> BodyRoute<AddGuildMemberPayload, GuildMember?> {
-        return .init(.PUT, GuildMembersBase(guildId, userId), b)
+        return .init(.PUT, GuildMembersBase(guildId, userId), b, GuildMembersBase(guildId, emptyFlake))
     }
     
     public static func GuildMembersModify(_ guildId: Snowflakable, _ userId: Snowflakable, _ b: ModifyGuildMemberPayload) -> BodyRoute<ModifyGuildMemberPayload, Empty> {
-        return .init(.PATCH, GuildMembersBase(guildId, userId), b)
+        return .init(.PATCH, GuildMembersBase(guildId, userId), b, GuildMembersBase(guildId, emptyFlake))
     }
     
     public static func GuildMembersRemove(_ guildId: Snowflakable, _ userId: Snowflakable) -> EmptyRoute {
-        return .init(.DELETE, GuildMembersBase(guildId, userId))
+        return .init(.DELETE, GuildMembersBase(guildId, userId), GuildMembersBase(guildId, emptyFlake))
     }
     
     public static func GuildMembersModifyNickMe(_ guildId: Snowflakable, _ b: ModifyNickMePayload) -> BodyRoute<ModifyNickMePayload, Empty> {
@@ -433,11 +481,11 @@ extension Route {
     }
     
     public static func GuildMembersRoleAdd(_ guildId: Snowflakable, _ userId: Snowflakable, _ roleId: Snowflakable) -> EmptyRoute {
-        return .init(.PUT, GuildMembersRolesBase(guildId, userId, roleId))
+        return .init(.PUT, GuildMembersRolesBase(guildId, userId, roleId), GuildMembersRolesBase(guildId, emptyFlake, emptyFlake))
     }
     
     public static func GuildMembersRoleRemove(_ guildId: Snowflakable, _ userId: Snowflakable, _ roleId: Snowflakable) -> EmptyRoute {
-        return .init(.DELETE, GuildMembersRolesBase(guildId, userId, roleId))
+        return .init(.DELETE, GuildMembersRolesBase(guildId, userId, roleId), GuildMembersRolesBase(guildId, emptyFlake, emptyFlake))
     }
     
     private static func GuildBansBase(_ guildId: Snowflakable) -> String {
@@ -453,15 +501,15 @@ extension Route {
     }
     
     public static func GuildBansGet(_ guildId: Snowflakable, _ userId: Snowflakable) -> BasicRoute<GuildBan> {
-        return .init(.GET, GuildBansBase(guildId, userId))
+        return .init(.GET, GuildBansBase(guildId, userId), GuildBansBase(guildId, emptyFlake))
     }
     
     public static func GuildBansCreate(_ guildId: Snowflakable, _ userId: Snowflakable, _ q: GuildBanQuery) -> QueryRoute<GuildBanQuery, Empty> {
-        return .init(.PUT, GuildBansBase(guildId, userId), q)
+        return .init(.PUT, GuildBansBase(guildId, userId), q, GuildBansBase(guildId, emptyFlake))
     }
     
     public static func GuildBansRemove(_ guildId: Snowflakable, _ userId: Snowflakable) -> EmptyRoute {
-        return .init(.DELETE, GuildBansBase(guildId, userId))
+        return .init(.DELETE, GuildBansBase(guildId, userId), GuildBansBase(guildId, emptyFlake))
     }
     
     private static func GuildRolesBase(_ guildId: Snowflakable) -> String {
@@ -485,11 +533,11 @@ extension Route {
     }
     
     public static func GuildRolesModify(_ guildId: Snowflakable, _ roleId: Snowflakable, _ b: ModifyRolePayload) -> BodyRoute<ModifyRolePayload, GuildRole> {
-        return .init(.PATCH, GuildRolesBase(guildId, roleId), b)
+        return .init(.PATCH, GuildRolesBase(guildId, roleId), b, GuildRolesBase(guildId, emptyFlake))
     }
     
     public static func GuildRolesDelete(_ guildId: Snowflakable, _ roleId: Snowflakable) -> EmptyRoute {
-        return .init(.DELETE, GuildRolesBase(guildId, roleId))
+        return .init(.DELETE, GuildRolesBase(guildId, roleId), GuildRolesBase(guildId, emptyFlake))
     }
     
     private static func GuildPruneBase(_ guildId: Snowflakable) -> String {
@@ -529,15 +577,15 @@ extension Route {
     }
     
     public static func GuildIntegrationsModify(_ guildId: Snowflakable, _ integrationId: Snowflakable, _ b: ModifyGuildIntegrationPayload) -> BodyRoute<ModifyGuildIntegrationPayload, Empty> {
-        return .init(.PATCH, GuildIntegrationsBase(guildId, integrationId), b)
+        return .init(.PATCH, GuildIntegrationsBase(guildId, integrationId), b, GuildIntegrationsBase(guildId, emptyFlake))
     }
     
     public static func GuildIntegrationsDelete(_ guildId: Snowflakable, _ integrationId: Snowflakable) -> EmptyRoute {
-        return .init(.DELETE, GuildIntegrationsBase(guildId, integrationId))
+        return .init(.DELETE, GuildIntegrationsBase(guildId, integrationId), GuildIntegrationsBase(guildId, emptyFlake))
     }
     
     public static func GuildIntegrationsSync(_ guildId: Snowflakable, _ integrationId: Snowflakable) -> EmptyRoute {
-        return .init(.POST, GuildIntegrationsBase(guildId, integrationId) + "/sync")
+        return .init(.POST, GuildIntegrationsBase(guildId, integrationId) + "/sync", GuildIntegrationsBase(guildId, emptyFlake) + "/sync")
     }
     
     private static func GuildWidgetBase(_ guildId: Snowflakable) -> String {
@@ -577,14 +625,23 @@ extension Route {
     }
     
     public static func GuildEmojisGet(_ guildId: Snowflakable, emojiId: String) -> BasicRoute<Emoji> {
-        return .init(.GET, GuildEmojisbase(guildId, emojiId))
+        return .init(.GET, GuildEmojisbase(guildId, emojiId), GuildEmojisbase(guildId, ""))
     }
     
     public static func GuildEmojisModify(_ guildId: Snowflakable, emojiId: String, _ b: ModifyEmojiPayload) -> BodyRoute<ModifyEmojiPayload, Emoji> {
-        return .init(.PATCH, GuildEmojisbase(guildId, emojiId), b)
+        return .init(.PATCH, GuildEmojisbase(guildId, emojiId), b, GuildEmojisbase(guildId, ""))
     }
     
     public static func GuildEmojisDelete(_ guildId: Snowflakable, emojiId: String) -> EmptyRoute {
-        return .init(.DELETE, GuildEmojisbase(guildId, emojiId))
+        return .init(.DELETE, GuildEmojisbase(guildId, emojiId), GuildEmojisbase(guildId, ""))
+    }
+}
+
+fileprivate var emptyFlake: EmptySnowflake { EmptySnowflake() }
+
+fileprivate struct EmptySnowflake: Snowflakable {
+    var snowflakeDescription: Snowflake { .init() }
+    var asString: String {
+        return ""
     }
 }

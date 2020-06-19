@@ -125,7 +125,7 @@ public struct GatewayGuildIntegrationsUpdate: DiscordGatewayType, DiscordHandled
 }
 
 public struct GatewayGuildMemberRemove: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let user: User
     
@@ -142,7 +142,7 @@ public internal(set) var client: DiscordClient!
 }
 
 public struct GatewayGuildMemberUpdate: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let roles: [Snowflake]
     public let user: User
@@ -161,7 +161,7 @@ public internal(set) var client: DiscordClient!
 }
 
 public struct GatewayGuildMembersChunk: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let members: [GuildMember]
     
@@ -178,7 +178,7 @@ public internal(set) var client: DiscordClient!
 }
 
 public struct GatewayGuildRoleEvent: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let role: GuildRole
     
@@ -195,7 +195,7 @@ public internal(set) var client: DiscordClient!
 }
 
 public struct GatewayGuildRoleDelete: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let roleId: Snowflake
     
@@ -212,7 +212,7 @@ public internal(set) var client: DiscordClient!
 
 // MARK: - Message
 public struct GatewayMessageDelete: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let id: Snowflake
     public let channelId: Snowflake
     public let guildId: Snowflake?
@@ -230,7 +230,7 @@ public internal(set) var client: DiscordClient!
 }
 
 public struct GatewayMessageDeleteBulk: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let ids: [Snowflake]
     public let channelId: Snowflake
     public let guildId: Snowflake?
@@ -248,7 +248,7 @@ public internal(set) var client: DiscordClient!
 }
 
 public struct GatewayMessageReactionEvent: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let userId: Snowflake
     public let channelId: Snowflake
     public let messageId: Snowflake
@@ -296,7 +296,7 @@ public struct GatewayStatusUpdate: Codable {
 
 // MARK: - Presence
 public struct GatewayPresenceUpdate: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let user: PartialUser
     public let roles: [Snowflake]?
     public let game: Activity?
@@ -328,7 +328,7 @@ public struct ClientStatus: Codable {
 }
 
 public struct GatewayTypingStart: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let channelId: Snowflake
     public let guildId: Snowflake
     public let userId: Snowflake
@@ -348,7 +348,7 @@ public internal(set) var client: DiscordClient!
 
 // MARK: - Voice
 public struct GatewayVoiceServerUpdate: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let token: String
     public let guildId: Snowflake
     public let endpoint: String
@@ -367,7 +367,7 @@ public internal(set) var client: DiscordClient!
 
 // MARK: - Webhooks
 public struct GatewayWebhooksUpdate: DiscordGatewayType, DiscordHandled {
-public internal(set) var client: DiscordClient!
+    public internal(set) var client: DiscordClient!
     public let guildId: Snowflake
     public let channelId: Snowflake
     

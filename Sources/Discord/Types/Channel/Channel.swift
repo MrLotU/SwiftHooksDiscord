@@ -17,7 +17,7 @@ public final class Channel: DiscordGatewayType, DiscordHandled {
     public let name: String?
     public let topic: String?
     public let nsfw: Bool?
-    public let lastMessageId: Snowflake?
+    public internal(set) var lastMessageId: Snowflake?
     public let bitrate: Int?
     public let userLimit: Int?
     public let ratelimitPerUser: Int?

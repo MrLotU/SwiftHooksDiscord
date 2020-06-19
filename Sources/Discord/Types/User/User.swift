@@ -127,7 +127,7 @@ extension User {
     }
     
     public var mention: String {
-        return "<@\(id)>"
+        return "<@!\(id)>"
     }
 }
 

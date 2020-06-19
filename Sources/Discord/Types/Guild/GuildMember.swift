@@ -46,6 +46,12 @@ public final class GuildMember: DiscordGatewayType, DiscordHandled {
     }()
 }
 
+extension GuildMember: Userable {
+    public var identifier: String? {
+        return self.id.asString
+    }
+}
+
 extension GuildMember: Snowflakable {
     public var snowflakeDescription: Snowflake {
         return user.snowflakeDescription
@@ -114,9 +120,6 @@ extension GuildMember {
     }
     
     public var mention: String {
-        if nick != nil {
-            return "<@!\(self.id)>"
-        }
         return user.mention
     }
     

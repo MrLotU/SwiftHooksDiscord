@@ -44,7 +44,7 @@ final class Shard {
         self.token = token
         self.buffer = Bytes()
         self.ackMissed = 0
-        self.logger = Logger(label: "SwiftHooksDiscord.Shard.\(id)")
+        self.logger = Logger(label: "SwiftHooksDiscord.Shard")
         logger[metadataKey: "shard-id"] = "\(self.id)"
         
         stream.avail_in = 0
