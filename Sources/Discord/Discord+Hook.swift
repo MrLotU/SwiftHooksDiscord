@@ -7,15 +7,44 @@ extension DiscordHook {
         self.hooks = hooks
         self.register(StatePlugin())
         if let shardCount = self.options.sharding.totalShards, let shard = self.options.sharding.shardId {
-            self.sharder.shardCount = shardCount
-            self.sharder.spawn(shard, on: "wss://gateway.discord.gg", withToken: options.token, on: self.eventLoopGroup, handledBy: self)
+            self.singleShardBoot(shard, shardCount)
         } else {
-            let amountOfShards = 1
-            self.sharder.shardCount = amountOfShards
-            for i in 0..<amountOfShards {
-                self.sharder.spawn(i, on: "wss://gateway.discord.gg", withToken: options.token, on: self.eventLoopGroup, handledBy: self)
+            self.autoshardBoot()
+        }
+    }
+    
+    fileprivate func singleShardBoot(_ shard: Int, _ total: Int) {
+        self.rest.execute(.GatewayBotGet).whenSuccess { gwBot in
+            guard gwBot.sessionStartLimit.remaining >= 1 else {
+                self.logger.warning("Unable to start enough shards at this time. Will re-try in \(gwBot.sessionStartLimit.reset_after)ms.")
+                self.eventLoopGroup.next().scheduleTask(in: .milliseconds(gwBot.sessionStartLimit.reset_after)) {
+                    self.singleShardBoot(shard, total)
+                }
+                return
+            }
+            self.sharder.shardCount = total
+            self.sharder.spawn(shard, on: gwBot.url, withToken: self.options.token, on: self.eventLoopGroup, handledBy: self)
+        }
+    }
+    
+    fileprivate func autoshardBoot() {
+        self.rest.execute(.GatewayBotGet).whenSuccess { gwBot in
+            guard gwBot.sessionStartLimit.remaining >= gwBot.shards else {
+                self.logger.warning("Unable to start enough shards at this time. Will re-try in \(gwBot.sessionStartLimit.reset_after)ms.")
+                self.eventLoopGroup.next().scheduleTask(in: .milliseconds(gwBot.sessionStartLimit.reset_after)) {
+                    self.autoshardBoot()
+                }
+                return
+            }
+            self.sharder.shardCount = gwBot.shards
+            for i in 0..<gwBot.shards {
+                self.sharder.spawn(i, on: gwBot.url, withToken: self.options.token, on: self.eventLoopGroup, handledBy: self)
             }
         }
+    }
+    
+    public var user: Userable? {
+        return state.me
     }
     
     public func shutdown() {
@@ -30,36 +59,38 @@ extension DiscordHook {
         guard let event = event as? _DiscordEvent<I> else { return }
         self.lock.withLockVoid {
             var closures = self.discordListeners[event, default: []]
-            closures.append { (data) in
-                guard let object = I.create(from: data, on: self) else {
+            closures.append { (data, el) in
+                guard let object = I.create(from: data, on: self, on: el) else {
                     self.logger.debug("Unable to extract \(I.self) from data.")
-                    return
+                    return el.makeFailedFuture(SwiftHooksError.GenericTypeCreationFailure("\(I.self)"))
                 }
-                guard let d = D.init(self) else {
+                guard let d = D.init(self, eventLoop: el) else {
                     self.logger.debug("Unable to wrap \(I.self) in \(D.self) dispatch.")
-                    return
+                    return el.makeFailedFuture(SwiftHooksError.DispatchCreationError)
                 }
-                try handler(d, object)
+                return handler(d, object)
             }
             self.discordListeners[event] = closures
         }
     }
     
-    public func dispatchEvent<E>(_ event: E, with raw: Data) where E: EventType {
-        defer {
-            self.hooks?.dispatchEvent(event, with: raw, from: self)
+    public func dispatchEvent<E>(_ event: E, with raw: Data, on eventLoop: EventLoop) -> EventLoopFuture<Void> where E: EventType {
+        func unwrapAndFuture(_ x: Void = ()) -> EventLoopFuture<Void> {
+            if let hooks = self.hooks {
+                return hooks.dispatchEvent(event, with: raw, from: self, on: eventLoop)
+            } else {
+                return eventLoop.makeSucceededFuture(())
+            }
         }
-        guard let event = event as? DiscordEvent else { return }
-        self.lock.withLockVoid {
-            let handlers = self.discordListeners[event]
-            handlers?.forEach({ [weak self] (handler) in
-                do {
-                    try handler(raw)
-                } catch {
-                    self?.logger.error("\(error.localizedDescription)")
-                }
+        guard let event = event as? DiscordEvent else { return unwrapAndFuture() }
+        let futures = self.lock.withLock { () -> [EventLoopFuture<Void>] in
+            let handlers = self.discordListeners[event] ?? []
+            return handlers.map({ (handler) in
+                return handler(raw, eventLoop)
             })
         }
+        return EventLoopFuture.andAllSucceed(futures, on: eventLoop)
+            .flatMap(unwrapAndFuture)
     }
 
     public func translate<E>(_ event: E) -> GlobalEvent? where E : EventType {
@@ -70,9 +101,9 @@ extension DiscordHook {
         }
     }
     
-    public func decodeConcreteType<T>(for event: GlobalEvent, with data: Data, as t: T.Type) -> T? {
+    public func decodeConcreteType<T>(for event: GlobalEvent, with data: Data, as t: T.Type, on eventLoop: EventLoop) -> T? {
         switch event {
-        case ._messageCreate: return Message.create(from: data, on: self) as? T
+        case ._messageCreate: return Message.create(from: data, on: self, on: eventLoop) as? T
         }
     }
 }

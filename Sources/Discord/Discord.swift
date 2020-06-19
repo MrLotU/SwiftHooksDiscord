@@ -9,7 +9,6 @@ extension HookID {
     }
 }
 
-//public typealias Discord = DiscordEvent
 
 public final class DiscordHook: Hook {
     public typealias Options = DiscordHookOptions
@@ -20,7 +19,7 @@ public final class DiscordHook: Hook {
     internal let sharder: Sharder
     internal let lock: Lock
     public let eventLoopGroup: EventLoopGroup
-    public let client: DiscordRESTClient
+    public let rest: DiscordRESTClient
     public let state: State
     public internal(set) var discordListeners: [DiscordEvent: [EventClosure]]
     public internal(set) var hooks: SwiftHooks?
@@ -37,7 +36,7 @@ public final class DiscordHook: Hook {
         self.sharder = Sharder()
         self.lock = Lock()
         self.discordListeners = [:]
-        self.client = DiscordRESTClient(self.eventLoopGroup, self.options.token)
+        self.rest = DiscordRESTClient(self.eventLoopGroup, self.options.token)
         self.state = State()
         
         DiscordHook.decoder.userInfo[DiscordHook.decodingInfo] = self

@@ -7,6 +7,8 @@ public enum DiscordRestError: Error {
     case MessageNeedsContent
     case UnbannableInstance
     case UnusableParent
+    case InvalidUnicodeEmoji
+    case TooManyRetries
 }
 
 /// Discord REST API Client
@@ -16,21 +18,28 @@ public enum DiscordRestError: Error {
 ///     client.execute(.ChannelMessagesCreate(channelId), payload)
 public final class DiscordRESTClient {
     /// The worker the requests are executed on
-    let worker: EventLoopGroup
+    let eventLoop: EventLoop
     /// The authentication token
     let token: String
     /// Shared URLSession
     let session: URLSession
     
+    let rateLimiter: RateLimiter
+    
     /// Creates a new REST Client
     init(_ worker: EventLoopGroup, _ token: String) {
-        self.worker = worker
+        self.eventLoop = worker.next()
         self.token = token
         self.session = URLSession(configuration: .default)
+        self.rateLimiter = RateLimiter()
     }
     
-    private var eventLoop: EventLoop {
-        return worker.next()
+    /// Creates a new REST Client
+    init(_ eventLoop: EventLoop, _ token: String) {
+        self.eventLoop = eventLoop
+        self.token = token
+        self.session = URLSession(configuration: .default)
+        self.rateLimiter = RateLimiter()
     }
     
     /// The base auth headers for requests to the Discord API
@@ -38,71 +47,46 @@ public final class DiscordRESTClient {
         return ["Authorization": "Bot \(token)"]
     }
     
-    /// Executes a route without body
-    ///
-    ///     let data = client.execute(.GatewayBotGet)
-    ///
-    /// - parameters:
-    ///     - route: Route to execute
-    ///
-    /// - returns: A future R
-    public func execute<R>(_ route: Route) -> EventLoopFuture<R> where R: Decodable {
-        let urlReq = URLRequest(route.url, method: route.method, headers: headers)
-        
-        return session.jsonBody(urlReq, type: R.self, on: eventLoop)
+    public func execute<B, Q, R>(_ route: Route<B, Q, R>) -> EventLoopFuture<R> {
+        let p = self.eventLoop.makePromise(of: R.self)
+        if let interval = self.rateLimiter.check(route) {
+            self.eventLoop.scheduleTask(in: .milliseconds(interval)) {
+                self._execute(route, p)
+            }
+        } else {
+            self._execute(route, p)
+        }
+        return p.futureResult
     }
     
-    /// Executes a route with a body
-    ///
-    ///     let message = client.execute(.ChannelMessagesCreate(channelId), MessageCreatePayload(...))
-    ///
-    /// - parameters:
-    ///     - route: Route to execute
-    ///     - body: Body to send
-    ///
-    /// - returns: A future R
-    public func execute<B, R>(_ route: Route, _ body: B) -> EventLoopFuture<R> where B: Encodable, R: Decodable {
-        do {
-            let urlReq = try URLRequest(url: route.url, method: route.method, headers: headers, json: body)
+    private func _execute<B, Q, R>(_ route: Route<B, Q, R>, _ p: EventLoopPromise<R>) {
+        executeAndCascade(p) {
+            let urlReq = try URLRequest(url: route.url, method: route.method, headers: self.headers, json: route.body)
             
-            return session.jsonBody(urlReq, type: R.self, on: eventLoop)
-        } catch {
-            return eventLoop.makeFailedFuture(error)
+            return self.session.json(urlReq, logger: self.rateLimiter.logger, on: self.eventLoop).map { (res, r: R) in
+                self.rateLimiter.update(route, with: res)
+                return r
+            }
         }
     }
     
-    /// Executes a route without body and an empty response
-    ///
-    ///     client.execute(.UserGuildLeave(guildId))
-    ///
-    /// - parameters:
-    ///     - route: Route to execute
-    ///
-    /// - returns: Discardable EventLoopFuture<Empty>
-    @discardableResult
-    public func execute(_ route: Route) -> EventLoopFuture<Empty> {
-        let urlReq = URLRequest(route.url, method: route.method, headers: headers)
+    public func execute<Q, R>(_ route: Route<Empty, Q, R>) -> EventLoopFuture<R> {
+        let urlReq = URLRequest(route.url, method: route.method, headers: self.headers)
+        let p = self.eventLoop.makePromise(of: R.self)
         
-        return session.jsonBody(urlReq, type: Empty.self, on: eventLoop)
-    }
-    
-    /// Executes a route with a body and an empty response
-    ///
-    ///     client.execute(.ChannelMessagesCreate(channelId), MessageCreatePayload(...))
-    ///
-    /// - parameters:
-    ///     - route: Route to execute
-    ///     - body: Body to send
-    ///
-    /// - returns: Discardable EventLoopFuture<Empty>
-    @discardableResult
-    public func execute<B>(_ route: Route, _ body: B) -> EventLoopFuture<Empty> where B: Encodable {
-        do {
-            let urlReq = try URLRequest(url: route.url, method: route.method, headers: headers, json: body)
-            
-            return session.jsonBody(urlReq, type: Empty.self, on: eventLoop)
-        } catch {
-            return eventLoop.makeFailedFuture(error)
+        if let interval = self.rateLimiter.check(route) {
+            self.eventLoop.scheduleTask(in: .milliseconds(interval)) {
+                self.session.json(urlReq, logger: self.rateLimiter.logger, on: self.eventLoop).map { (res, r: R) in
+                    self.rateLimiter.update(route, with: res)
+                    return r
+                }.cascade(to: p)
+            }
+        } else {
+            session.json(urlReq, logger: self.rateLimiter.logger, on: eventLoop).map { (res, r: R) in
+                self.rateLimiter.update(route, with: res)
+                return r
+            }.cascade(to: p)
         }
+        return p.futureResult
     }
 }

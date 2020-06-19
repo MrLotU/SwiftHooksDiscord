@@ -9,11 +9,13 @@ fileprivate let ZlibSuffix: Bytes = [0x0, 0x0, 0xFF, 0xFF]
 /// A shard is a single connection to the Discord Gateway
 ///
 /// A bot can have multiple shards to spread the load
-final class Shard: GatewayClient {
+final class Shard {
     var logger: Logger
     var ackMissed: Int {
         didSet {
-            self.logger.trace("Currently missed \(ackMissed) acks.")
+            if ackMissed > 1 {
+                self.logger.trace("Currently missed \(ackMissed) acks.")
+            }
         }
     }
     var buffer: Bytes
@@ -42,7 +44,7 @@ final class Shard: GatewayClient {
         self.token = token
         self.buffer = Bytes()
         self.ackMissed = 0
-        self.logger = Logger(label: "SwiftHooksDiscord.Shard.\(id)")
+        self.logger = Logger(label: "SwiftHooksDiscord.Shard")
         logger[metadataKey: "shard-id"] = "\(self.id)"
         
         stream.avail_in = 0
@@ -59,7 +61,7 @@ final class Shard: GatewayClient {
         self.heartbeatTask?.cancel()
     }
     
-    func handle(_ data: Data) {
+    func handle(_ data: Data, on eventLoop: EventLoop) {
         buffer.append(contentsOf: data)
         
         guard isBufferComplete else {
@@ -109,14 +111,14 @@ final class Shard: GatewayClient {
         if !text.isEmpty {
             buffer.removeAll()
         }
-        handle(text)
+        handle(text, on: eventLoop)
     }
         
-    func handle(_ text: String) {
+    func handle(_ text: String, on eventLoop: EventLoop) {
         guard let data = text.data(using: .utf8) else { return }
         do {
             let payload = try SwiftHooks.decoder.decode(GatewaySinData.self, from: data)
-            handle(payload, data)
+            handle(payload, data, on: eventLoop)
         } catch {
             self.logger.error("Error handeling payload. \(error.localizedDescription). \(text)")
         }
@@ -124,6 +126,7 @@ final class Shard: GatewayClient {
     
     func heartbeat() {
         let heartbeat = GatewayPayload(d: lastSequence, op: .heartbeat, s: nil, t: nil)
+        self.logger.trace("Heartbeating")
         send(heartbeat)
     }
         
@@ -145,11 +148,7 @@ final class Shard: GatewayClient {
     func send<T: Codable>(_ payload: GatewayPayload<T>) {
         do {
             let data = try SwiftHooks.encoder.encode(payload)
-            let prom = self.elg.next().makePromise(of: Void.self)
-            socket?.send(raw: data, opcode: .binary, promise: prom)
-            prom.futureResult.whenFailure { (err) in
-                self.logger.error("Error sending data: \(err.localizedDescription)")
-            }
+            socket?.send(raw: data, opcode: .binary)
         } catch {
             self.logger.error("Error sending data: \(error.localizedDescription)")
         }

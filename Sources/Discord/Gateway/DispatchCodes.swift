@@ -3,18 +3,31 @@ import protocol NIO.EventLoop
 
 extension CommandEvent {
     public var discord: DiscordClient? {
-        return hook as? DiscordClient
+        guard let h = hook as? DiscordHook else { return nil }
+        return _DiscordClient(h, eventLoop: eventLoop)
     }
 }
 
-public struct DiscordDispatch: EventDispatch {
+public struct DiscordDispatch: EventDispatch, DiscordClient {
     public let eventLoop: EventLoop
-    public let client: DiscordClient
+    private let client: DiscordClient
     
-    public init?(_ h: _Hook) {
+    public var rest: DiscordRESTClient {
+        client.rest
+    }
+    
+    public var state: State {
+        client.state
+    }
+    
+    public var options: DiscordHookOptions {
+        client.options
+    }
+    
+    public init?(_ h: _Hook, eventLoop: EventLoop) {
         guard let h = h as? DiscordHook else { return nil }
-        self.eventLoop = h.eventLoop
-        self.client = h
+        self.eventLoop = eventLoop
+        self.client = _DiscordClient(h, eventLoop: eventLoop)
     }
 }
 
@@ -103,4 +116,8 @@ public enum Discord {
     public static let webhooksUpdate = _DiscordEvent(._webhooksUpdate, GatewayWebhooksUpdate.self)
 }
 
-public struct Empty: PayloadType { }
+public struct Empty: Codable, PayloadType, QueryItemConvertible {
+    public func toQueryItems() -> [URLQueryItem] {
+        return []
+    }
+}

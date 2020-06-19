@@ -1,6 +1,25 @@
+import Foundation
+
 public struct ModifyUserPayload: Codable {
     public let username: String
     public let avatar: String?
+}
+
+public struct UserGuildsMeQuery: QueryItemConvertible {
+    public let before: Snowflake?
+    public let after: Snowflake?
+    public let limit: Int?
+    
+    public func toQueryItems() -> [URLQueryItem] {
+        var arr = [
+            URLQueryItem(name: "before", value: before?.asString),
+            URLQueryItem(name: "after", value: after?.asString)
+        ]
+        if let l = limit {
+            arr.append(URLQueryItem(name: "limit", value: "\(l)"))
+        }
+        return arr
+    }
 }
 
 public struct CreateDMPayload: Codable {
@@ -17,7 +36,7 @@ public struct UserConnection: Codable {
     public let name: String
     public let type: String
     public let isRevoked: Bool
-//    public var integrations: [Integration]
+    public var integrations: [GuildIntegration]
     public let isVerified: Bool
     public let friendSync: Bool
     public let showActivity: Bool
@@ -28,7 +47,7 @@ public struct UserConnection: Codable {
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, name, type, visibility
+        case id, name, type, visibility, integrations
         case isRevoked = "revoked", isVerified = "is_verified"
         case friendSync = "friend_sync", showActivity = "show_activity"
     }
@@ -84,7 +103,7 @@ public struct Activity: Codable {
 }
 
 public enum PremiumType: Int, Codable {
-    case nitroClassic = 1, nitro
+    case none, nitroClassic, nitro
 }
 
 public enum Flags: Int, Codable {

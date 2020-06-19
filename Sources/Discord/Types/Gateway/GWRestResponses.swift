@@ -1,3 +1,7 @@
+public struct GatewayResponse: Codable {
+    let url: String
+}
+
 public struct GatewayBotResponse: Codable {
     public let url: String
     public let shards: Int
@@ -11,6 +15,6 @@ public struct GatewayBotResponse: Codable {
     public struct SessionStartLimit: Codable {
         public let total: Int
         public let remaining: Int
-        public let reset_after: Int
+        public let reset_after: Int64
     }
 }

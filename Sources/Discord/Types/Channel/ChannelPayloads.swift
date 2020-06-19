@@ -1,3 +1,5 @@
+import Foundation
+
 public struct ModifyChannelPayload: Codable {
     public let name: String?
     public let position: Int?
@@ -16,30 +18,68 @@ public struct ModifyChannelPayload: Codable {
     }
 }
 
+public struct ChannelMessagesGetQuery: QueryItemConvertible {
+    public let around: Snowflake?
+    public let before: Snowflake?
+    public let after: Snowflake?
+    public let limit: Int?
+    
+    public func toQueryItems() -> [URLQueryItem] {
+        var arr = [
+            URLQueryItem(name: "around", value: around?.asString),
+            URLQueryItem(name: "before", value: before?.asString),
+            URLQueryItem(name: "after", value: after?.asString)
+        ]
+        if let l = limit {
+            arr.append(.init(name: "limit", value: "\(l)"))
+        }
+        return arr
+    }
+}
+
 public struct MessageCreatePayload: Codable {
     public let content: String
     public let nonce: Snowflake?
     public let isTts: Bool?
     public let embed: Embed?
+    public let allowedMentions: AllowedMentions
     
     enum CodingKeys: String, CodingKey {
         case content, nonce, embed
-        case isTts = "tts"
+        case isTts = "tts", allowedMentions = "allowed_mentions"
     }
 }
 
 public struct MessageEditPayload: Codable {
     public let content: String?
     public let embed: Embed?
+    public let flags: MessageFlags?
 }
 
 public struct BulkDeleteMessagesPayload: Codable {
     public let messages: [Snowflake]
 }
 
+public struct GetReactionsQuery: QueryItemConvertible {
+    public let before: Snowflake?
+    public let after: Snowflake?
+    public let limit: Int?
+    
+    public func toQueryItems() -> [URLQueryItem] {
+        var arr = [
+            URLQueryItem(name: "before", value: before?.asString),
+            URLQueryItem(name: "after", value: after?.asString)
+        ]
+        if let l = limit {
+            arr.append(URLQueryItem(name: "limit", value: "\(l)"))
+        }
+        return arr
+    }
+}
+
 public struct EditChannelPermissionsPayload: Codable {
-    public let allow: Int
-    public let deny: Int
+    public let allow: Permissions
+    public let deny: Permissions
     public let type: ChannelPermissionsType
     
     public enum ChannelPermissionsType: String, Codable {

@@ -2,11 +2,12 @@
 public protocol Snowflakable {
     /// Snowflake value
     var snowflakeDescription: Snowflake { get }
+    /// Returns the snowflake as a string
+    var asString: String { get }
 }
 
 extension Snowflakable {
-    /// Returns the snowflake as a string
-    var asString: String {
+    public var asString: String {
         return "\(self.snowflakeDescription)"
     }
 }

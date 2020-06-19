@@ -1,12 +1,15 @@
 import Foundation
+import protocol NIO.EventLoop
+import class Metrics.Counter
 
 extension Shard {
-    func handle(_ payload: GatewaySinData, _ data: Data) {
+    func handle(_ payload: GatewaySinData, _ data: Data, on eventLoop: EventLoop) {
+        Counter(label: "discord_event_recieved", dimensions: [("op", payload.op.description)]).increment()
         switch payload.op {
         case .dispatch:
             lastSequence = payload.s
             
-            handleDispatch(payload, data)
+            handleDispatch(payload, data, on: eventLoop)
             
         case .heartbeat:
             ackMissed -= 1
@@ -24,7 +27,8 @@ extension Shard {
                 return
             }
             let interval = Int64(payload.heartbeatInterval)
-            heartbeatTask = self.elg.next().scheduleRepeatedTask(initialDelay: .milliseconds(interval), delay: .milliseconds(interval)) { [weak self] (task) in
+            self.logger.debug("Starting hearbeater. Interval: \(interval)ms")
+            heartbeatTask = self.socket?.eventLoop.scheduleRepeatedTask(initialDelay: .milliseconds(interval), delay: .milliseconds(interval)) { [weak self] (task) in
                 guard let strongSelf = self else { return }
                 guard !(strongSelf.socket?.isClosed ?? true) else {
                     strongSelf.logger.warning("Hearbeating from closed shard")

@@ -1,4 +1,5 @@
 import NIO
+import Logging
 import Foundation
 
 /// Custom URLSession errors
@@ -12,20 +13,18 @@ enum HTTPMethod: String {
     case GET, POST, PATCH, DELETE, PUT, HEAD
 }
 
+struct RateLimit: Codable {
+    let retry_after: Int
+}
+
 extension URLSession {
-    /// Get raw data from given URLRequest
-    ///
-    /// - parameters:
-    ///     - request: URLRequest to execute
-    ///     - eventLoop: EventLoop to execute on
-    ///
-    /// - returns: A future HTTPURLResponse and the Data
     func data(
         _ request: URLRequest,
-        on eventLoop: EventLoop) -> EventLoopFuture<(HTTPURLResponse, Data)>
+        on eventLoop: EventLoop,
+        with promise: EventLoopPromise<(HTTPURLResponse, Data)>,
+        logger: Logger,
+        _ retries: Int = 0)
     {
-        let promise = eventLoop.makePromise(of: (HTTPURLResponse, Data).self)
-        
         let task = self.dataTask(with: request) { data, response, error in
             if let error = error {
                 promise.fail(URLSessionFutureError.networkError(error))
@@ -36,10 +35,43 @@ extension URLSession {
                 promise.fail(URLSessionFutureError.invalidResponse)
                 return
             }
+            
+            guard retries < 5 else {
+                promise.fail(DiscordRestError.TooManyRetries)
+                return
+            }
+            
+            if response.statusCode == 429, let data = data, let limit = try? JSONDecoder().decode(RateLimit.self, from: data) {
+                logger.warning("Request received status 429 (ratelimited). Retrying. (This should not happen, check your clock sync)")
+                eventLoop.scheduleTask(in: .milliseconds(Int64(limit.retry_after))) {
+                    self.data(request, on: eventLoop, with: promise, logger: logger, retries + 1)
+                }
+                return
+            }
+            
             promise.succeed((response, data ?? Data()))
         }
         
         task.resume()
+    }
+
+    
+    /// Get raw data from given URLRequest
+    ///
+    /// - parameters:
+    ///     - request: URLRequest to execute
+    ///     - eventLoop: EventLoop to execute on
+    ///
+    /// - returns: A future HTTPURLResponse and the Data
+    func data(
+        _ request: URLRequest,
+        logger: Logger,
+        on eventLoop: EventLoop) -> EventLoopFuture<(HTTPURLResponse, Data)>
+    {
+        let promise = eventLoop.makePromise(of: (HTTPURLResponse, Data).self)
+        
+        self.data(request, on: eventLoop, with: promise, logger: logger)
+        
         return promise.futureResult
     }
     
@@ -56,10 +88,16 @@ extension URLSession {
         _ request: URLRequest,
         type: T.Type = T.self,
         decoder: JSONDecoder = JSONDecoder(),
+        logger: Logger,
         on eventLoop: EventLoop) -> EventLoopFuture<(HTTPURLResponse, T)>
     {
-        return data(request, on: eventLoop)
-            .flatMapThrowing { ($0.0, try decoder.decode(type, from: $0.1)) }
+        return data(request, logger: logger, on: eventLoop)
+            .flatMapThrowing {
+                if T.self is Empty.Type {
+                    return ($0.0, Empty() as! T)
+                }
+                return ($0.0, try decoder.decode(type, from: $0.1))
+        }
     }
     
     /// Get a decodable from given URLRequest
@@ -75,9 +113,10 @@ extension URLSession {
         _ request: URLRequest,
         type: T.Type = T.self,
         decoder: JSONDecoder = JSONDecoder(),
+        logger: Logger,
         on eventLoop: EventLoop) -> EventLoopFuture<T>
     {
-        return json(request, type: type, decoder: decoder, on: eventLoop)
+        return json(request, type: type, decoder: decoder, logger: logger, on: eventLoop)
             .map { $0.1 }
     }
 }
@@ -112,5 +151,13 @@ extension URLRequest {
         }
         
         httpMethod = method.rawValue
+    }
+}
+
+func executeAndCascade<T>(_ p: EventLoopPromise<T>, _ closure: @escaping (() throws -> EventLoopFuture<T>)) {
+    do {
+        try closure().cascade(to: p)
+    } catch {
+        p.fail(error)
     }
 }

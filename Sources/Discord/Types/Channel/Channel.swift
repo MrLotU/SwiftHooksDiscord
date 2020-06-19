@@ -1,30 +1,27 @@
 import NIO
 import Foundation
 
-public struct Channel: DiscordGatewayType, DiscordHandled {
+public final class Channel: DiscordGatewayType, DiscordHandled {
     public internal(set) var client: DiscordClient! {
         didSet {
-            var newRecipients = [User]()
-            for var user in self.recipients ?? [] {
+            for user in self.recipients ?? [] {
                 user.client = client
-                newRecipients.append(user)
             }
-            self.recipients = newRecipients
         }
     }
     public let id: Snowflake
     public let type: ChannelType
-    public let guildId: Snowflake?
+    public internal(set) var guildId: Snowflake?
     public let position: Int?
     public let permissionOverwrites: [PermissionOverwrite]?
     public let name: String?
     public let topic: String?
     public let nsfw: Bool?
-    public let lastMessageId: Snowflake?
+    public internal(set) var lastMessageId: Snowflake?
     public let bitrate: Int?
     public let userLimit: Int?
     public let ratelimitPerUser: Int?
-    public private(set) var recipients: [User]?
+    public let recipients: [User]?
     public let icon: String?
     public let ownerId: Snowflake?
     public let applicationId: Snowflake?
@@ -38,6 +35,43 @@ public struct Channel: DiscordGatewayType, DiscordHandled {
         case ratelimitPerUser = "ratelimit_per_user", ownerId = "owner_id"
         case applicationId = "application_id", parentId = "parent_id"
         case lastPinTimestamp = "last_pin_timestamp"
+    }
+    
+    public lazy var guild: Guild? = {
+        guard let gId = guildId else { return nil }
+        return client.state.guilds[gId]?.copyWith(self.client)
+    }()
+
+    public lazy var parent: Channel? = {
+        guard let pId = parentId else { return nil }
+        return client.state.channels[pId]?.copyWith(self.client)
+    }()
+    
+    func copyWith(_ client: DiscordClient) -> Channel {
+        let x = Channel(id: id, type: type, guildId: guildId, position: position, permissionOverwrites: permissionOverwrites, name: name, topic: topic, nsfw: nsfw, lastMessageId: lastMessageId, bitrate: bitrate, userLimit: userLimit, ratelimitPerUser: ratelimitPerUser, recipients: recipients, icon: icon, ownerId: ownerId, applicationId: applicationId, parentId: parentId, lastPinTimestamp: lastPinTimestamp)
+        x.client = client
+        return x
+    }
+    
+    internal init(id: Snowflake, type: ChannelType, guildId: Snowflake?, position: Int?, permissionOverwrites: [PermissionOverwrite]?, name: String?, topic: String?, nsfw: Bool?, lastMessageId: Snowflake?, bitrate: Int?, userLimit: Int?, ratelimitPerUser: Int?, recipients: [User]?, icon: String?, ownerId: Snowflake?, applicationId: Snowflake?, parentId: Snowflake?, lastPinTimestamp: String?) {
+        self.id = id
+        self.type = type
+        self.guildId = guildId
+        self.position = position
+        self.permissionOverwrites = permissionOverwrites
+        self.name = name
+        self.topic = topic
+        self.nsfw = nsfw
+        self.lastMessageId = lastMessageId
+        self.bitrate = bitrate
+        self.userLimit = userLimit
+        self.ratelimitPerUser = ratelimitPerUser
+        self.recipients = recipients
+        self.icon = icon
+        self.ownerId = ownerId
+        self.applicationId = applicationId
+        self.parentId = parentId
+        self.lastPinTimestamp = lastPinTimestamp
     }
 }
 
@@ -83,45 +117,34 @@ extension Channel {
     public var isVoice: Bool {
         return self.type == .voice || self.isDm
     }
-    
-    public var guild: Guild? {
-        guard let gId = guildId else { return nil }
-        return client.state.guilds[gId]
-    }
-
-    public var parent: Channel? {
-        guard let pId = parentId else { return nil }
-        return client.state.channels[pId]
-    }
 }
 
 extension Channel {
     func get(message id: Snowflake) -> EventLoopFuture<Message> {
-        return self.client.client.execute(Route.ChannelMessagesGet(self, id)).map { $0 as Message }
+        return self.client.rest.execute(.ChannelMessagesGet(self, id)).map(setClient)
     }
 
-    @discardableResult
     func send(_ msg: String, isTts: Bool = false, embed: Embed? = nil) -> EventLoopFuture<Message> {
-        let body = MessageCreatePayload(content: msg, nonce: nil, isTts: isTts, embed: embed)
+        let body = MessageCreatePayload(content: msg, nonce: nil, isTts: isTts, embed: embed, allowedMentions: .init(parse: [], roles: [], users: []))
 
-        return self.client.client.execute(.ChannelMessagesCreate(self), body).map { $0 as Message }
+        return self.client.rest.execute(.ChannelMessagesCreate(self, body)).map(setClient)
     }
 
-//    func getInvites(on client: DiscordRESTClient) -> EventLoopFuture<[ChannelInvite]> {
-//
+//    func getInvites() -> EventLoopFuture<[ChannelInvite]> {
+//        return self.client.rest.execute(.ChannelInvitesGet(self))
 //    }
 
 //    func createInvite
     var pins: EventLoopFuture<[Message]> {
-        return self.client.client.execute(.ChannelPinsGet(self)).map { $0 as [Message] }
+        return self.client.rest.execute(.ChannelPinsGet(self)).map { (msgs: [Message]) in msgs.map(self.setClient) }
     }
 
-    func pin(message id: Snowflake) {
-        self.client.client.execute(Route.ChannelsPinsAdd(self, id))
+    func pin(message id: Snowflake) -> EventLoopFuture<Void> {
+        self.client.rest.execute(.ChannelsPinsAdd(self, id)).map { _ in }
     }
 
-    func unpin(message id: Snowflake) {
-        self.client.client.execute(Route.ChannelsPinsDelete(self, id))
+    func unpin(message id: Snowflake) -> EventLoopFuture<Void> {
+        self.client.rest.execute(.ChannelsPinsDelete(self, id)).map { _ in }
     }
 
 //    var webhooks: EventLoopFuture<[Webhook]> {
@@ -133,34 +156,37 @@ extension Channel {
 //    }
 
     func send(_ message: MessageCreatePayload) throws -> EventLoopFuture<Message> {
-        return self.client.client.execute(.ChannelMessagesCreate(self), message).map { $0 as Message }
+        return self.client.rest.execute(.ChannelMessagesCreate(self, message)).map(setClient)
     }
 
-    func startTyping() {
-        self.client.client.execute(.ChannelTyping(self))
+    func startTyping() -> EventLoopFuture<Void> {
+        self.client.rest.execute(.ChannelTyping(self)).map { _ in }
     }
 
-    func delete(messages ids: Snowflake...) throws {
-        guard !ids.isEmpty else { return }
+    func deleteMessages(_ ids: Snowflake...) -> EventLoopFuture<Void> {
+        guard !ids.isEmpty else { return self.client.eventLoop.makeSucceededFuture(()) }
 
         if ids.count == 1, let id = ids.first {
-            self.client.client.execute(.ChannelMessagesDelete(self, id))
-            return
+            return self.client.rest.execute(.ChannelMessagesDelete(self, id)).map { _ in }
         }
 
         let body = BulkDeleteMessagesPayload(messages: ids)
 
-        self.client.client.execute(.ChannelMessagesDeleteBulk(self.id), body)
+        return self.client.rest.execute(.ChannelMessagesDeleteBulk(self.id, body)).map { _ in }
     }
 
-    func delete() throws {
-        guard self.isDm || self.guild?.permissions?.contains(.manageChannels) ?? false else { throw DiscordRestError.InvalidPermissions }
-        self.client.client.execute(.ChannelDelete(self.id))
+    func delete() -> EventLoopFuture<Channel> {
+        guard self.isDm || self.guild?.permissions?.contains(.manageChannels) ?? false else {
+            return self.client.eventLoop.makeFailedFuture(DiscordRestError.InvalidPermissions)
+        }
+        return self.client.rest.execute(.ChannelDelete(self.id)).map(setClient)
     }
 
-    func close() throws {
-        guard self.isDm else { throw DiscordRestError.InvalidPermissions }
-        try self.delete()
+    func close() -> EventLoopFuture<Channel> {
+        guard self.isDm else {
+            return self.client.eventLoop.makeFailedFuture(DiscordRestError.InvalidPermissions)
+        }
+        return self.delete()
     }
 
     func set(
@@ -174,21 +200,33 @@ extension Channel {
         _ permOverwrites: [PermissionOverwrite]? = nil,
         _ parent: Snowflake? = nil) throws -> EventLoopFuture<Channel> {
         let body = ModifyChannelPayload(name: name, position: pos, topic: topic, isNsfw: nsfw, rateLimit: rateLimit, bitrate: bitrate, userLimit: userLimit, permissionOverwrites: permOverwrites, parentId: parent)
-        return self.client.client.execute(.ChannelModify(self), body).map { $0 as Channel }
+        return self.client.rest.execute(.ChannelModify(self, body)).map(setClient)
     }
 
-    func createTextChannel(named name: String, at pos: Int? = nil, topic: String = "", rateLimitPerUser: Int? = nil, overwrites: [PermissionOverwrite]? = nil, isNsfw: Bool? = nil) throws -> EventLoopFuture<Channel> {
+    func createTextChannel(named name: String, at pos: Int? = nil, topic: String = "", rateLimitPerUser: Int? = nil, overwrites: [PermissionOverwrite]? = nil, isNsfw: Bool? = nil) -> EventLoopFuture<Channel> {
         guard let guild = self.guild else {
-            throw DiscordRestError.NotAGuild
+            return self.client.eventLoop.makeFailedFuture(DiscordRestError.NotAGuild)
         }
-        return try guild.createTextChannel(named: name, at: pos, parent: self, topic: topic, isNsfw: isNsfw, rateLimitPerUser: rateLimitPerUser, permissionOverwrites: overwrites)
+        return guild.createTextChannel(named: name, at: pos, parent: self, topic: topic, isNsfw: isNsfw, rateLimitPerUser: rateLimitPerUser, permissionOverwrites: overwrites, on: self.client)
     }
 
-    func createVoiceChannel(named name: String, at pos: Int?, bitrate: Int? = nil, userLimit: Int? = nil, overwrites: [PermissionOverwrite]? = nil) throws -> EventLoopFuture<Channel> {
+    func createVoiceChannel(named name: String, at pos: Int?, bitrate: Int? = nil, userLimit: Int? = nil, overwrites: [PermissionOverwrite]? = nil) -> EventLoopFuture<Channel> {
         guard let guild = self.guild else {
-            throw DiscordRestError.NotAGuild
+            return self.client.eventLoop.makeFailedFuture(DiscordRestError.NotAGuild)
         }
-        return try guild.createVoiceChannel(named: name, at: pos, parent: self, bitrate: bitrate, userLimit: userLimit, overwrites: overwrites)
+        return guild.createVoiceChannel(named: name, at: pos, parent: self, bitrate: bitrate, userLimit: userLimit, overwrites: overwrites, on: self.client)
+    }
+}
+
+internal extension Channel {
+    func setClient(_ t: Message) -> Message {
+        t.client = self.client
+        return t
+    }
+    
+    func setClient(_ t: Channel) -> Channel {
+        t.client = self.client
+        return t
     }
 }
 
