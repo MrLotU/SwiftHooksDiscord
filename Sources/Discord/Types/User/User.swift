@@ -101,7 +101,7 @@ extension User: Userable {
 
 extension User: CommandArgumentConvertible {
     public static func resolveArgument(_ argument: String, on event: CommandEvent) throws -> User {
-        if let user = event.message.discord?.mentions.first(where: { $0.mention == argument.replacingOccurrences(of: "!", with: "") }) {
+        if let user = event.message.discord?.mentions.first(where: { $0.mention == argument }) {
             return user
         }
         guard let snowflake = Snowflake(argument) else {
