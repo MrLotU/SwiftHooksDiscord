@@ -87,6 +87,12 @@ public struct UserFlags: OptionSet, Codable {
     public static let verifiedBotDeveloper = UserFlags(rawValue: 1 << 17)
 }
 
+extension Userable {
+    public var discord: Discord.User? {
+        self as? Discord.User
+    }
+}
+
 extension User: Userable {
     public var identifier: String? {
         id.asString
