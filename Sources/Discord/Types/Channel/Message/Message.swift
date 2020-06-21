@@ -140,7 +140,7 @@ extension Message: Messageable {
         case CommandError.ArgumentNotFound(let arg):
             self.reply("Missing argument: \(f+arg+f)\nUsage: \(help)")
         case CommandError.InvalidPermissions:
-           self.reply("Invalid permissions!\nUsage: \(help)")
+           self.reply("Invalid permissions!")
         case CommandError.UnableToConvertArgument(let arg, let type):
            self.reply("Error converting \(f+arg+f) to \(f+type+f)\nUsage: \(help)")
         default:

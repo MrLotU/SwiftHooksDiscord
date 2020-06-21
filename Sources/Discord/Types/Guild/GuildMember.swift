@@ -7,8 +7,8 @@ public final class GuildMember: DiscordGatewayType, DiscordHandled {
         }
     }
     public internal(set) var user: User! // Missing in MESSAGE_CREATE or MESSAGE_UPDATE
-    public let nick: String?
-    public let roles: [Snowflake]
+    public internal(set) var nick: String?
+    public internal(set) var roles: [Snowflake]
     public let joinedAt: String
     public let premiumSince: String?
     public let isDeafened: Bool

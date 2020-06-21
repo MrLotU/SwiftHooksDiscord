@@ -70,7 +70,12 @@ class StatePlugin: Plugin {
                     }
                 }
                 
-                Listener(Discord.guildMemberUpdate) { _, guildMemberUpdate -> Void in }
+                Listener(Discord.guildMemberUpdate) { e, member -> Void in
+                    guard let guild = e.state.guilds[member.guildId], let preMember = guild.members[member.user.id] else { return }
+                    preMember.roles = member.roles
+                    preMember.user = member.user
+                    preMember.nick = member.nick
+                }
                 
                 Listener(Discord.guildMembersChunk) { e, chunk -> Void in
                     guard let guild = e.state.guilds[chunk.guildId] else { return }
@@ -100,7 +105,10 @@ class StatePlugin: Plugin {
                     guild.roles[event.role.id] = event.role
                 }
                 
-                Listener(Discord.guildRoleUpdate) { _, guildRoleUpdate -> Void in }
+                Listener(Discord.guildRoleUpdate) { e, _role -> Void in
+                    guard let guild = e.state.guilds[_role.guildId] else { return }
+                    guild.roles[_role.role.id] = _role.role
+                }
                 
                 Listener(Discord.guildRoleDelete) { e, event -> Void in
                     guard let guild = e.state.guilds[event.guildId], guild.roles.sContains(event.roleId) else { return }
