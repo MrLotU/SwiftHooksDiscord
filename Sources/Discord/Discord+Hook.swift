@@ -1,4 +1,5 @@
 import NIO
+import Logging
 import Foundation
 
 extension DiscordHook {
@@ -144,5 +145,51 @@ public struct DiscordHookOptions: HookOptions {
         self.state = state
         self.sharding = sharding
         self.maxReconnects = maxReconnects
+    }
+}
+
+public struct DiscordCommandEvent: _EventType {
+    public static func from(_ event: CommandEvent) -> DiscordCommandEvent {
+        guard let user = event.user.discord, let message = event.message.discord else { fatalError() }
+        return .init(hooks: event.hooks, user: user, args: event.args, message: message, name: event.name, hook: event.hook, logger: event.logger, eventLoop: event.eventLoop)
+    }
+    
+    public let hooks: SwiftHooks
+    public let user: User
+    public let args: [String]
+    public let message: Message
+    public let name: String
+    public let hook: _Hook
+    public let logger: Logger
+    public let eventLoop: EventLoop
+}
+
+public extension Command {
+    func discord() -> Command<DiscordCommandEvent> {
+        return self.onHook(.discord).changeEventType(DiscordCommandEvent.self)
+    }
+}
+
+public extension OneArgCommand {
+    func discord() -> OneArgCommand<A, DiscordCommandEvent> {
+        return self.onHook(.discord).changeEventType(DiscordCommandEvent.self)
+    }
+}
+
+public extension TwoArgCommand {
+    func discord() -> TwoArgCommand<A, B, DiscordCommandEvent> {
+        return self.onHook(.discord).changeEventType(DiscordCommandEvent.self)
+    }
+}
+
+public extension ThreeArgCommand {
+    func discord() -> ThreeArgCommand<A, B, C, DiscordCommandEvent> {
+        return self.onHook(.discord).changeEventType(DiscordCommandEvent.self)
+    }
+}
+
+public extension ArrayArgCommand {
+    func discord() -> ArrayArgCommand<DiscordCommandEvent> {
+        return self.onHook(.discord).changeEventType(DiscordCommandEvent.self)
     }
 }

@@ -11,7 +11,7 @@ let package = Package(
         .library(name: "Discord", targets: ["Discord"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/MrLotU/SwiftHooks.git", from: "1.0.0-alpha.2"),
+        .package(url: "https://github.com/MrLotU/SwiftHooks.git", from: "1.0.0-alpha.2.4"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.11.1"),
         .package(url: "https://github.com/apple/swift-nio-zlib-support.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
