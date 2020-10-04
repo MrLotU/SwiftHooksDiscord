@@ -40,6 +40,16 @@ public final class DiscordHook: Hook {
         self.state = State()
         
         DiscordHook.decoder.userInfo[DiscordHook.decodingInfo] = self
+        DiscordHook.decoder.dateDecodingStrategy = .custom({ (decoder) -> Date in
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withFractionalSeconds, .withInternetDateTime]
+            let c = try decoder.singleValueContainer()
+            let s = try c.decode(String.self)
+            guard let d = formatter.date(from: s) else {
+                throw DecodingError.dataCorruptedError(in: c, debugDescription: "Unable to convert string to ISO-8601 date.")
+            }
+            return d
+        })
     }
 }
 

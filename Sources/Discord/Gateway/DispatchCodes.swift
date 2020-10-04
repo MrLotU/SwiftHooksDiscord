@@ -11,6 +11,7 @@ extension CommandEvent {
 public struct DiscordDispatch: EventDispatch, DiscordClient {
     public let eventLoop: EventLoop
     private let client: DiscordClient
+    private let _hooks: SwiftHooks?
     
     public var rest: DiscordRESTClient {
         client.rest
@@ -24,10 +25,16 @@ public struct DiscordDispatch: EventDispatch, DiscordClient {
         client.options
     }
     
+    public var hooks: SwiftHooks {
+        precondition(_hooks != nil, "Hooks not found. You can only access hooks when using DiscordHook through the SwiftHooks backbone.")
+        return _hooks!
+    }
+    
     public init?(_ h: _Hook, eventLoop: EventLoop) {
         guard let h = h as? DiscordHook else { return nil }
         self.eventLoop = eventLoop
         self.client = _DiscordClient(h, eventLoop: eventLoop)
+        self._hooks = h.hooks
     }
 }
 

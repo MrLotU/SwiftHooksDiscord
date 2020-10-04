@@ -1,128 +1,131 @@
 import Foundation
 import NIO
 
-public final class Guild: DiscordGatewayType, DiscordHandled {
-    public internal(set) var client: DiscordClient! {
-        didSet {
-            for member in self.members ?? [] {
-                member.client = client
-                member.guildId = self.id
-            }
-            for channel in self.channels ?? [] {
-                channel.client = client
+public typealias Guild = Discord.Guild
+extension Discord {
+    public final class Guild: DiscordGatewayType, DiscordHandled {
+        public internal(set) var client: DiscordClient! {
+            didSet {
+                for member in self.members ?? [] {
+                    member.client = client
+                    member.guildId = self.id
+                }
+                for channel in self.channels ?? [] {
+                    channel.client = client
+                }
             }
         }
-    }
-    
-    public let id: Snowflake
-    public internal(set) var name: String
-    public let icon: String?
-    public let splash: String?
-    public let discoverySplash: String?
-    public let isOwner: Bool?
-    public let ownerId: Snowflake
-    public let permissions: Permissions?
-    public let region: String
-    public let afkChannelId: Snowflake?
-    public let afkTimeout: TimeInterval?
-    public let verificationLevel: VerificationLevel
-    public let defaultMessageNotifications: NotificationLevel
-    public let explicitContentFilter: ExplicitContentFilterLevel
-    public internal(set) var roles: [GuildRole]
-    public internal(set) var emojis: [Emoji]
-    public let features: [Feature]
-    public let mfaLevel: MFALevel
-    public let applicationId: Snowflake?
-    public let widgetEnabled: Bool?
-    public let widgetChannelId: Snowflake?
-    public let systemChannelId: Snowflake?
-    public let systemChannelFlags: SystemChannelFlags
-    public let rulesChannelId: Snowflake?
-    public let joinedAt: String?
-    public let isLarge: Bool?
-    public let isUnavailable: Bool?
-    public let memberCount: Int?
-    public let voiceStates: [VoiceState]!
-    public internal(set) var members: [GuildMember]!
-    public internal(set) var channels: [Channel]!
-    public let presences: [GatewayPresenceUpdate]!
-    public let maxPresences: Int?
-    public let maxMembers: Int?
-    public let vanityUrlCode: String?
-    public let description: String?
-    public let banner: String?
-    public let premiumTier: PremiumTier
-    public let premiumSubscriptionCount: Int?
-    public let preferredLocale: String
-    public let publicUpdatesChannelId: Snowflake?
-    public let maxVideoChannelUsers: Int?
-    public let approximateMemberCount: Int?
-    public let approximatePresenceCount: Int?
-    
-    enum CodingKeys: String, CodingKey {
-        case id, name, icon, splash, discoverySplash = "discover_splash", permissions, region, roles, emojis, features, members, channels, presences
-        case isOwner = "is_owner", ownerId = "owner_id", afkChannelId = "afk_channel_id", afkTimeout = "afk_timeout"
-        case verificationLevel = "verification_level"
-        case defaultMessageNotifications = "default_message_notifications", explicitContentFilter = "explicit_content_filter"
-        case mfaLevel = "mfa_level", applicationId = "application_id", widgetEnabled = "widget_enabled", widgetChannelId = "widget_channel_id"
-        case systemChannelId = "system_channel_id", systemChannelFlags = "system_channel_flags", rulesChannelId = "rules_channel_id", joinedAt = "joined_at", isLarge = "large", isUnavailable = "unavailable", memberCount = "member_count"
-        case voiceStates = "voice_states", maxPresences = "max_presences", vanityUrlCode = "vanity_url_code", maxMembers = "max_members", description, banner
-        case premiumTier = "premium_tier", premiumSubscriptionCount = "premium_subscription_count", preferredLocale = "preferred_locale"
-        case publicUpdatesChannelId = "public_updates_channel_id", maxVideoChannelUsers = "max_video_channel_users", approximateMemberCount = "approximate_member_count"
-        case approximatePresenceCount = "approximate_presence_count"
-    }
-    
-    func copyWith(_ client: DiscordClient) -> Guild {
-        let x = Guild(id: id, name: name, icon: icon, splash: splash, discoverySplash: discoverySplash, isOwner: isOwner, ownerId: ownerId, permissions: permissions, region: region, afkChannelId: afkChannelId, afkTimeout: afkTimeout, verificationLevel: verificationLevel, defaultMessageNotifications: defaultMessageNotifications, explicitContentFilter: explicitContentFilter, roles: roles, emojis: emojis, features: features, mfaLevel: mfaLevel, applicationId: applicationId, widgetEnabled: widgetEnabled, widgetChannelId: widgetChannelId, systemChannelId: systemChannelId, systemChannelFlags: systemChannelFlags, rulesChannelId: rulesChannelId, joinedAt: joinedAt, isLarge: isLarge, isUnavailable: isUnavailable, memberCount: memberCount, voiceStates: voiceStates, members: members, channels: channels, presences: presences, maxPresences: maxPresences, maxMembers: maxMembers, vanityUrlCode: vanityUrlCode, description: description, banner: banner, premiumTier: premiumTier, premiumSubscriptionCount: premiumSubscriptionCount, preferredLocale: preferredLocale, publicUpdatesChannelId: publicUpdatesChannelId, maxVideoChannelUsers: maxVideoChannelUsers, approximateMemberCount: approximateMemberCount, approximatePresenceCount: approximatePresenceCount)
-        x.client = client
-        return x
-    }
-    
-    internal init(id: Snowflake, name: String, icon: String?, splash: String?, discoverySplash: String?, isOwner: Bool?, ownerId: Snowflake, permissions: Permissions?, region: String, afkChannelId: Snowflake?, afkTimeout: TimeInterval?, verificationLevel: Guild.VerificationLevel, defaultMessageNotifications: Guild.NotificationLevel, explicitContentFilter: Guild.ExplicitContentFilterLevel, roles: [GuildRole], emojis: [Emoji], features: [Guild.Feature], mfaLevel: Guild.MFALevel, applicationId: Snowflake?, widgetEnabled: Bool?, widgetChannelId: Snowflake?, systemChannelId: Snowflake?, systemChannelFlags: Guild.SystemChannelFlags, rulesChannelId: Snowflake?, joinedAt: String?, isLarge: Bool?, isUnavailable: Bool?, memberCount: Int?, voiceStates: [VoiceState], members: [GuildMember], channels: [Channel], presences: [GatewayPresenceUpdate], maxPresences: Int?, maxMembers: Int?, vanityUrlCode: String?, description: String?, banner: String?, premiumTier: Guild.PremiumTier, premiumSubscriptionCount: Int?, preferredLocale: String, publicUpdatesChannelId: Snowflake?, maxVideoChannelUsers: Int?, approximateMemberCount: Int?, approximatePresenceCount: Int?) {
-        self.id = id
-        self.name = name
-        self.icon = icon
-        self.splash = splash
-        self.discoverySplash = discoverySplash
-        self.isOwner = isOwner
-        self.ownerId = ownerId
-        self.permissions = permissions
-        self.region = region
-        self.afkChannelId = afkChannelId
-        self.afkTimeout = afkTimeout
-        self.verificationLevel = verificationLevel
-        self.defaultMessageNotifications = defaultMessageNotifications
-        self.explicitContentFilter = explicitContentFilter
-        self.roles = roles
-        self.emojis = emojis
-        self.features = features
-        self.mfaLevel = mfaLevel
-        self.applicationId = applicationId
-        self.widgetEnabled = widgetEnabled
-        self.widgetChannelId = widgetChannelId
-        self.systemChannelId = systemChannelId
-        self.systemChannelFlags = systemChannelFlags
-        self.rulesChannelId = rulesChannelId
-        self.joinedAt = joinedAt
-        self.isLarge = isLarge
-        self.isUnavailable = isUnavailable
-        self.memberCount = memberCount
-        self.voiceStates = voiceStates
-        self.members = members
-        self.channels = channels
-        self.presences = presences
-        self.maxPresences = maxPresences
-        self.maxMembers = maxMembers
-        self.vanityUrlCode = vanityUrlCode
-        self.description = description
-        self.banner = banner
-        self.premiumTier = premiumTier
-        self.premiumSubscriptionCount = premiumSubscriptionCount
-        self.preferredLocale = preferredLocale
-        self.publicUpdatesChannelId = publicUpdatesChannelId
-        self.maxVideoChannelUsers = maxVideoChannelUsers
-        self.approximateMemberCount = approximateMemberCount
-        self.approximatePresenceCount = approximatePresenceCount
+        
+        public let id: Snowflake
+        public internal(set) var name: String
+        public let icon: String?
+        public let splash: String?
+        public let discoverySplash: String?
+        public let isOwner: Bool?
+        public let ownerId: Snowflake
+        public let permissions: Permissions?
+        public let region: String
+        public let afkChannelId: Snowflake?
+        public let afkTimeout: TimeInterval?
+        public let verificationLevel: VerificationLevel
+        public let defaultMessageNotifications: NotificationLevel
+        public let explicitContentFilter: ExplicitContentFilterLevel
+        public internal(set) var roles: [GuildRole]
+        public internal(set) var emojis: [Emoji]
+        public let features: [Feature]
+        public let mfaLevel: MFALevel
+        public let applicationId: Snowflake?
+        public let widgetEnabled: Bool?
+        public let widgetChannelId: Snowflake?
+        public let systemChannelId: Snowflake?
+        public let systemChannelFlags: SystemChannelFlags
+        public let rulesChannelId: Snowflake?
+        public let joinedAt: String?
+        public let isLarge: Bool?
+        public let isUnavailable: Bool?
+        public let memberCount: Int?
+        public let voiceStates: [VoiceState]!
+        public internal(set) var members: [GuildMember]!
+        public internal(set) var channels: [Channel]!
+        public let presences: [GatewayPresenceUpdate]!
+        public let maxPresences: Int?
+        public let maxMembers: Int?
+        public let vanityUrlCode: String?
+        public let description: String?
+        public let banner: String?
+        public let premiumTier: PremiumTier
+        public let premiumSubscriptionCount: Int?
+        public let preferredLocale: String
+        public let publicUpdatesChannelId: Snowflake?
+        public let maxVideoChannelUsers: Int?
+        public let approximateMemberCount: Int?
+        public let approximatePresenceCount: Int?
+        
+        enum CodingKeys: String, CodingKey {
+            case id, name, icon, splash, discoverySplash = "discover_splash", permissions, region, roles, emojis, features, members, channels, presences
+            case isOwner = "is_owner", ownerId = "owner_id", afkChannelId = "afk_channel_id", afkTimeout = "afk_timeout"
+            case verificationLevel = "verification_level"
+            case defaultMessageNotifications = "default_message_notifications", explicitContentFilter = "explicit_content_filter"
+            case mfaLevel = "mfa_level", applicationId = "application_id", widgetEnabled = "widget_enabled", widgetChannelId = "widget_channel_id"
+            case systemChannelId = "system_channel_id", systemChannelFlags = "system_channel_flags", rulesChannelId = "rules_channel_id", joinedAt = "joined_at", isLarge = "large", isUnavailable = "unavailable", memberCount = "member_count"
+            case voiceStates = "voice_states", maxPresences = "max_presences", vanityUrlCode = "vanity_url_code", maxMembers = "max_members", description, banner
+            case premiumTier = "premium_tier", premiumSubscriptionCount = "premium_subscription_count", preferredLocale = "preferred_locale"
+            case publicUpdatesChannelId = "public_updates_channel_id", maxVideoChannelUsers = "max_video_channel_users", approximateMemberCount = "approximate_member_count"
+            case approximatePresenceCount = "approximate_presence_count"
+        }
+        
+        func copyWith(_ client: DiscordClient) -> Guild {
+            let x = Guild(id: id, name: name, icon: icon, splash: splash, discoverySplash: discoverySplash, isOwner: isOwner, ownerId: ownerId, permissions: permissions, region: region, afkChannelId: afkChannelId, afkTimeout: afkTimeout, verificationLevel: verificationLevel, defaultMessageNotifications: defaultMessageNotifications, explicitContentFilter: explicitContentFilter, roles: roles, emojis: emojis, features: features, mfaLevel: mfaLevel, applicationId: applicationId, widgetEnabled: widgetEnabled, widgetChannelId: widgetChannelId, systemChannelId: systemChannelId, systemChannelFlags: systemChannelFlags, rulesChannelId: rulesChannelId, joinedAt: joinedAt, isLarge: isLarge, isUnavailable: isUnavailable, memberCount: memberCount, voiceStates: voiceStates, members: members, channels: channels, presences: presences, maxPresences: maxPresences, maxMembers: maxMembers, vanityUrlCode: vanityUrlCode, description: description, banner: banner, premiumTier: premiumTier, premiumSubscriptionCount: premiumSubscriptionCount, preferredLocale: preferredLocale, publicUpdatesChannelId: publicUpdatesChannelId, maxVideoChannelUsers: maxVideoChannelUsers, approximateMemberCount: approximateMemberCount, approximatePresenceCount: approximatePresenceCount)
+            x.client = client
+            return x
+        }
+        
+        internal init(id: Snowflake, name: String, icon: String?, splash: String?, discoverySplash: String?, isOwner: Bool?, ownerId: Snowflake, permissions: Permissions?, region: String, afkChannelId: Snowflake?, afkTimeout: TimeInterval?, verificationLevel: Guild.VerificationLevel, defaultMessageNotifications: Guild.NotificationLevel, explicitContentFilter: Guild.ExplicitContentFilterLevel, roles: [GuildRole], emojis: [Emoji], features: [Guild.Feature], mfaLevel: Guild.MFALevel, applicationId: Snowflake?, widgetEnabled: Bool?, widgetChannelId: Snowflake?, systemChannelId: Snowflake?, systemChannelFlags: Guild.SystemChannelFlags, rulesChannelId: Snowflake?, joinedAt: String?, isLarge: Bool?, isUnavailable: Bool?, memberCount: Int?, voiceStates: [VoiceState], members: [GuildMember], channels: [Channel], presences: [GatewayPresenceUpdate], maxPresences: Int?, maxMembers: Int?, vanityUrlCode: String?, description: String?, banner: String?, premiumTier: Guild.PremiumTier, premiumSubscriptionCount: Int?, preferredLocale: String, publicUpdatesChannelId: Snowflake?, maxVideoChannelUsers: Int?, approximateMemberCount: Int?, approximatePresenceCount: Int?) {
+            self.id = id
+            self.name = name
+            self.icon = icon
+            self.splash = splash
+            self.discoverySplash = discoverySplash
+            self.isOwner = isOwner
+            self.ownerId = ownerId
+            self.permissions = permissions
+            self.region = region
+            self.afkChannelId = afkChannelId
+            self.afkTimeout = afkTimeout
+            self.verificationLevel = verificationLevel
+            self.defaultMessageNotifications = defaultMessageNotifications
+            self.explicitContentFilter = explicitContentFilter
+            self.roles = roles
+            self.emojis = emojis
+            self.features = features
+            self.mfaLevel = mfaLevel
+            self.applicationId = applicationId
+            self.widgetEnabled = widgetEnabled
+            self.widgetChannelId = widgetChannelId
+            self.systemChannelId = systemChannelId
+            self.systemChannelFlags = systemChannelFlags
+            self.rulesChannelId = rulesChannelId
+            self.joinedAt = joinedAt
+            self.isLarge = isLarge
+            self.isUnavailable = isUnavailable
+            self.memberCount = memberCount
+            self.voiceStates = voiceStates
+            self.members = members
+            self.channels = channels
+            self.presences = presences
+            self.maxPresences = maxPresences
+            self.maxMembers = maxMembers
+            self.vanityUrlCode = vanityUrlCode
+            self.description = description
+            self.banner = banner
+            self.premiumTier = premiumTier
+            self.premiumSubscriptionCount = premiumSubscriptionCount
+            self.preferredLocale = preferredLocale
+            self.publicUpdatesChannelId = publicUpdatesChannelId
+            self.maxVideoChannelUsers = maxVideoChannelUsers
+            self.approximateMemberCount = approximateMemberCount
+            self.approximatePresenceCount = approximatePresenceCount
+        }
     }
 }
 
@@ -213,12 +216,12 @@ extension Guild {
     
     public func getIconUrl(_ format: String = "png", _ size: Int = 1024) -> String? {
         guard let icon = self.icon else { return nil }
-        return "https://cdn.discord.com/icons/\(id)/\(icon).\(format)?size=\(size)"
+        return "https://cdn.discordapp.com/icons/\(id)/\(icon).\(format)?size=\(size)"
     }
     
     public func getSplashUrl(_ format: String = "png", _ size: Int = 1024) -> String? {
         guard let splash = self.splash else { return nil }
-        return "https://cdn.discord.com/splashes/\(id)/\(splash).\(format)?size=\(size)"
+        return "https://cdn.discordapp.com/splashes/\(id)/\(splash).\(format)?size=\(size)"
     }
 }
 

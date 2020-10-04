@@ -35,6 +35,13 @@ public enum EmbedType: String, Codable {
 }
 
 public struct EmbedThumbnail: Codable {
+    public init(url: String? = nil, proxy_url: String? = nil, height: Int? = nil, width: Int? = nil) {
+        self.url = url
+        self.proxy_url = proxy_url
+        self.height = height
+        self.width = width
+    }
+    
     public let url: String?
     public let proxy_url: String?
     public let height: Int?
@@ -42,12 +49,25 @@ public struct EmbedThumbnail: Codable {
 }
 
 public struct EmbedVideo: Codable {
+    public init(url: String? = nil, height: Int? = nil, width: Int? = nil) {
+        self.url = url
+        self.height = height
+        self.width = width
+    }
+    
     public let url: String?
     public let height: Int?
     public let width: Int?
 }
 
 public struct EmbedImage: Codable {
+    public init(url: String? = nil, proxy_url: String? = nil, height: Int? = nil, width: Int? = nil) {
+        self.url = url
+        self.proxy_url = proxy_url
+        self.height = height
+        self.width = width
+    }
+    
     public let url: String?
     public let proxy_url: String?
     public let height: Int?
@@ -55,11 +75,23 @@ public struct EmbedImage: Codable {
 }
 
 public struct EmbedProvider: Codable {
+    public init(name: String? = nil, url: String? = nil) {
+        self.name = name
+        self.url = url
+    }
+    
     public let name: String?
     public let url: String?
 }
 
 public struct EmbedAuthor: Codable {
+    public init(name: String? = nil, url: String? = nil, icon_url: String? = nil, proxy_icon_url: String? = nil) {
+        self.name = name
+        self.url = url
+        self.icon_url = icon_url
+        self.proxy_icon_url = proxy_icon_url
+    }
+    
     public let name: String?
     public let url: String?
     public let icon_url: String?
@@ -67,12 +99,24 @@ public struct EmbedAuthor: Codable {
 }
 
 public struct EmbedFooter: Codable {
+    public init(text: String, icon_url: String? = nil, proxy_icon_url: String? = nil) {
+        self.text = text
+        self.icon_url = icon_url
+        self.proxy_icon_url = proxy_icon_url
+    }
+    
     public let text: String
     public let icon_url: String?
     public let proxy_icon_url: String?
 }
 
 public struct EmbedField: Codable {
+    public init(name: String, value: String, inline: Bool? = nil) {
+        self.name = name
+        self.value = value
+        self.inline = inline
+    }
+    
     public let name: String
     public let value: String
     public let inline: Bool?

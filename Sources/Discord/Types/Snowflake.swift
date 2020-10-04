@@ -54,13 +54,17 @@ public struct Snowflake {
 extension Snowflake: Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
+        try container.encode(Int64(rawValue))
     }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        let str = try container.decode(String.self)
-        self.init(str)!
+        if let str = try? container.decode(String.self) {
+            self.init(str)!
+            return
+        }
+        let int = try container.decode(Int64.self)
+        self.init(rawValue: UInt64(int))
     }
 }
 
@@ -114,7 +118,7 @@ extension Snowflake: Hashable {
 }
 
 extension Snowflake: CommandArgumentConvertible {
-    public static func resolveArgument(_ argument: String, on event: CommandEvent) throws -> Snowflake {
+    public static func resolveArgument(_ argument: String, on event: _EventType) throws -> Snowflake {
         if let flake = Snowflake(argument) {
             return flake
         }

@@ -150,8 +150,8 @@ public struct DiscordHookOptions: HookOptions {
 
 public struct DiscordCommandEvent: _EventType {
     public static func from(_ event: CommandEvent) -> DiscordCommandEvent {
-        guard let user = event.user.discord, let message = event.message.discord else { fatalError() }
-        return .init(hooks: event.hooks, user: user, args: event.args, message: message, name: event.name, hook: event.hook, logger: event.logger, eventLoop: event.eventLoop)
+        guard let user = event.user.discord, let message = event.message.discord, let hook = event.hook as? DiscordHook else { fatalError() }
+        return .init(hooks: event.hooks, user: user, args: event.args, message: message, name: event.name, hook: hook, logger: event.logger, eventLoop: event.eventLoop, client: _DiscordClient(hook, eventLoop: event.eventLoop))
     }
     
     public let hooks: SwiftHooks
@@ -162,6 +162,7 @@ public struct DiscordCommandEvent: _EventType {
     public let hook: _Hook
     public let logger: Logger
     public let eventLoop: EventLoop
+    public let client: DiscordClient
 }
 
 public extension Command {

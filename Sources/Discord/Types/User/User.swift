@@ -100,17 +100,31 @@ extension User: Userable {
 }
 
 extension User: CommandArgumentConvertible {
-    public static func resolveArgument(_ argument: String, on event: CommandEvent) throws -> User {
-        if let user = event.message.discord?.mentions.first(where: { $0.mention == argument }) {
-            return user
+    public static func resolveArgument(_ argument: String, on event: _EventType) throws -> User {
+        if let event = event as? CommandEvent {
+            if let user = event.message.discord?.mentions.first(where: { $0.mention == argument }) {
+                return user
+            }
+            guard let snowflake = Snowflake(argument) else {
+                throw CommandError.UnableToConvertArgument(argument, "\(self.self)")
+            }
+            guard let discord = event.discord, let user = discord.state.users[snowflake] else {
+                throw CommandError.ArgumentNotFound(argument)
+            }
+            return user.copyWith(discord)
+        } else if let event = event as? DiscordCommandEvent {
+            if let user = event.message.mentions.first(where: { $0.mention == argument }) {
+                return user
+            }
+            guard let snowflake = Snowflake(argument) else {
+                throw CommandError.UnableToConvertArgument(argument, "\(self.self)")
+            }
+            guard let user = event.client.state.users[snowflake] else {
+                throw CommandError.ArgumentNotFound(argument)
+            }
+            return user.copyWith(event.client)
         }
-        guard let snowflake = Snowflake(argument) else {
-            throw CommandError.UnableToConvertArgument(argument, "\(self.self)")
-        }
-        guard let discord = event.discord, let user = discord.state.users[snowflake] else {
-            throw CommandError.ArgumentNotFound(argument)
-        }
-        return user.copyWith(discord)
+        throw CommandError.ArgumentNotFound(argument)
     }
 }
 
@@ -123,9 +137,9 @@ extension User: Snowflakable {
 extension User {
     public func getAvatarUrl(format: String = "webp", size: Int = 1024) -> String {
         guard let avatar = avatar else {
-            return "https://cdn.discord.com/embed/avatars/\(Int(discriminator) ?? 0 % 5).png"
+            return "https://cdn.discordapp.com/embed/avatars/\(Int(discriminator) ?? 0 % 5).png"
         }
-        return "https://cdn.discord.com/avatars/\(id)/\(avatar).\(format)?size=\(size)"
+        return "https://cdn.discordapp.com/avatars/\(id)/\(avatar).\(format)?size=\(size)"
     }
     
     public var avatarUrl: String {

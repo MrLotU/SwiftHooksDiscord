@@ -1,4 +1,5 @@
 import NIO
+import Foundation
 
 public final class GuildMember: DiscordGatewayType, DiscordHandled {
     public internal(set) var client: DiscordClient! {
@@ -9,7 +10,7 @@ public final class GuildMember: DiscordGatewayType, DiscordHandled {
     public internal(set) var user: User! // Missing in MESSAGE_CREATE or MESSAGE_UPDATE
     public internal(set) var nick: String?
     public internal(set) var roles: [Snowflake]
-    public let joinedAt: String
+    public let joinedAt: Date
     public let premiumSince: String?
     public let isDeafened: Bool
     public let isMuted: Bool
@@ -26,7 +27,7 @@ public final class GuildMember: DiscordGatewayType, DiscordHandled {
         return x
     }
     
-    internal init(user: User?, nick: String?, roles: [Snowflake], joinedAt: String, premiumSince: String?, isDeafened: Bool, isMuted: Bool, guildId: Snowflake? = nil) {
+    internal init(user: User?, nick: String?, roles: [Snowflake], joinedAt: Date, premiumSince: String?, isDeafened: Bool, isMuted: Bool, guildId: Snowflake? = nil) {
         self.user = user
         self.nick = nick
         self.roles = roles
