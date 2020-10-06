@@ -2,6 +2,10 @@ import Foundation
 import NIOConcurrencyHelpers
 import Logging
 
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
 func == (_ lhs: AnyRoute, _ rhs: AnyRoute) -> Bool {
     return lhs.bucket == rhs.bucket
 }

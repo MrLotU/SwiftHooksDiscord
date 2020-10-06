@@ -2,7 +2,7 @@ import Foundation
 import Logging
 import NIO
 import WebSocketKit
-import zlib
+import CZlib
 
 fileprivate let ZlibSuffix: Bytes = [0x0, 0x0, 0xFF, 0xFF]
 

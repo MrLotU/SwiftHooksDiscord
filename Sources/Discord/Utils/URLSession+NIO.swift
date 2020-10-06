@@ -2,6 +2,10 @@ import NIO
 import Logging
 import Foundation
 
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
 /// Custom URLSession errors
 enum URLSessionFutureError: Error {
     case networkError(Error)

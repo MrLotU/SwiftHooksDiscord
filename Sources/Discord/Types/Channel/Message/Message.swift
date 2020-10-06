@@ -192,9 +192,11 @@ extension Message {
     }
     
     public func addReaction(_ reaction: String) -> EventLoopFuture<Void> {
+        #if !os(Linux)
         guard reaction.isSingleEmoji || reaction.contains(":") else {
             return self.client.eventLoop.makeFailedFuture(DiscordRestError.InvalidUnicodeEmoji)
         }
+        #endif
         return self.client.rest.execute(.ChannelMessagesReactionsCreate(self.channelId, self, reaction)).map { _ in }
     }
 
@@ -222,7 +224,7 @@ public enum MessageType: Int, Codable {
     case channelFollowAdd = 12, guildDiscoveryDisqualified = 14, guildDiscoveryRequalified = 15
 }
 
-
+#if !os(Linux)
 extension Character {
     /// A simple emoji is one scalar and presented to the user as an Emoji
     var isSimpleEmoji: Bool {
@@ -241,3 +243,4 @@ extension String {
 
     var containsEmoji: Bool { contains { $0.isEmoji } }
 }
+#endif
